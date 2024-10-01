@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>經文校稿工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #d3d3d3; /* 灰色背景 */
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .textarea-wrapper {
+            width: 48%;
+            box-sizing: border-box;
+        }
+        .input-wrapper, .output-wrapper {
+            width: 100%;
+            min-height: 300px;
+            margin-bottom: 20px;
+            background-color: #f5f5f5; /* 灰底 */
+            padding: 10px;
+            box-sizing: border-box;
+            overflow: auto;
+            white-space: pre-wrap; /* 保留空白和換行 */
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        .highlight {
+            background-color: yellow; /* 黃色高亮 */
+        }
+        .typo-highlight {
+            background-color: lightblue; /* 淺藍色高亮 */
+        }
+    </style>
+</head>
+<body>
+
+<h1>經文校稿工具</h1>
+
+<div class="container">
+    <div class="textarea-wrapper">
+        <h2>輸入文字</h2>
+        <div id="inputText" class="input-wrapper" contenteditable="true" placeholder="請在此輸入您的文章..."></div>
+    </div>
+    <div class="textarea-wrapper">
+        <h2>校稿結果</h2>
+        <div id="output" class="output-wrapper"></div>
+    </div>
+</div>
+
+<button onclick="processText()">校稿</button>
+
+<script>
+    // 定義書卷全名與縮寫的對應關係，包含常見縮寫
+    const bookAbbreviations = {
+        '創世記': '創',
+        '創': '創',
+        '出埃及記': '出',
+        '出': '出',
+        '利未記': '利',
+        '利': '利',
+        '民數記': '民',
+        '民': '民',
+        '申命記': '申',
+        '申': '申',
+        '約書亞記': '書',
+        '書': '書',
+        '士師記': '士',
+        '士': '士',
+        '路得記': '得',
+        '得': '得',
+        '撒母耳記上': '撒上',
+        '撒上': '撒上',
+        '撒母耳記下': '撒下',
+        '撒下': '撒下',
+        '列王紀上': '王上',
+        '王上': '王上',
+        '列王紀下': '王下',
+        '王下': '王下',
+        '歷代志上': '代上',
+        '代上': '代上',
+        '歷代志下': '代下',
+        '代下': '代下',
+        '以斯拉記': '拉',
+        '拉': '拉',
+        '尼希米記': '尼',
+        '尼': '尼',
+        '以斯帖記': '斯',
+        '斯': '斯',
+        '約伯記': '伯',
+        '伯': '伯',
+        '詩篇': '詩',
+        '詩': '詩',
+        '箴言': '箴',
+        '箴': '箴',
+        '傳道書': '傳',
+        '傳': '傳',
+        '雅歌': '歌',
+        '歌': '歌',
+        '以賽亞書': '賽',
+        '賽': '賽',
+        '耶利米書': '耶',
+        '耶': '耶',
+        '耶利米哀歌': '哀',
+        '哀': '哀',
+        '以西結書': '結',
+        '結': '結',
+        '但以理書': '但',
+        '但': '但',
+        '何西阿書': '何',
+        '何': '何',
+        '約珥書': '珥',
+        '珥': '珥',
+        '阿摩司書': '摩',
+        '摩': '摩',
+        '俄巴底亞書': '俄',
+        '俄': '俄',
+        '約拿書': '拿',
+        '拿': '拿',
+        '彌迦書': '彌',
+        '彌': '彌',
+        '那鴻書': '鴻',
+        '鴻': '鴻',
+        '哈巴谷書': '哈',
+        '哈': '哈',
+        '西番雅書': '番',
+        '番': '番',
+        '哈該書': '該',
+        '該': '該',
+        '撒迦利亞書': '亞',
+        '亞': '亞',
+        '瑪拉基書': '瑪',
+        '瑪': '瑪',
+        '馬太福音': '太',
+        '馬太': '太',
+        '太': '太',
+        '馬可福音': '可',
+        '馬可': '可',
+        '可': '可',
+        '路加福音': '路',
+        '路加': '路',
+        '路': '路',
+        '約翰福音': '約',
+        '約翰': '約',
+        '約': '約',
+        '使徒行傳': '徒',
+        '徒': '徒',
+        '羅馬書': '羅',
+        '羅': '羅',
+        '哥林多前書': '林前',
+        '林前': '林前',
+        '哥林多後書': '林後',
+        '林後': '林後',
+        '加拉太書': '加',
+        '加': '加',
+        '以弗所書': '弗',
+        '弗': '弗',
+        '腓立比書': '腓',
+        '腓': '腓',
+        '歌羅西書': '西',
+        '西': '西',
+        '帖撒羅尼迦前書': '帖前',
+        '帖前': '帖前',
+        '帖撒羅尼迦後書': '帖後',
+        '帖後': '帖後',
+        '提摩太前書': '提前',
+        '提前': '提前',
+        '提摩太後書': '提後',
+        '提後': '提後',
+        '提多書': '多',
+        '多': '多',
+        '腓利門書': '門',
+        '門': '門',
+        '希伯來書': '來',
+        '來': '來',
+        '雅各書': '雅',
+        '雅': '雅',
+        '彼得前書': '彼前',
+        '彼前': '彼前',
+        '彼得後書': '彼後',
+        '彼後': '彼後',
+        '約翰一書': '約一',
+        '約一': '約一',
+        '約翰二書': '約二',
+        '約二': '約二',
+        '約翰三書': '約三',
+        '約三': '約三',
+        '猶大書': '猶',
+        '猶': '猶',
+        '啟示錄': '啟',
+        '啟': '啟',
+        // 添加其他書卷如有需要
+    };
+
+    // 錯字和正確字的對應關係
+    const typoCorrections = {
+        '安祥': '安詳',
+        '台灣': '臺灣',
+        '講台': '講臺',
+        '姊妹': '姐妹',
+        '裏面': '裡面',
+        '甚麼': '什麼',
+        '秘密': '祕密',
+        '奧秘': '奧祕',
+        '按步就班': '按部就班',
+        '不明究理': '不明就裡',
+        '淬練': '淬鍊',
+        '借機': '藉機',
+        '拼命': '拚命',
+        '煞那': '剎那',
+        '身份': '身分',
+        '熟捻': '熟稔',
+        '無所適事': '無所事事',
+        '撒馬利亞': '撒瑪利亞',
+        '做見證': '作見證',
+        '抵毀': '詆毀',
+        '服侍': '服事',
+        '模擬兩可': '模稜兩可',
+        '約旦河': '約但河',
+        '伸仗': '伸杖',
+        '撒旦': '撒但',
+        '生活無慮': '生活無虞',
+        '周六': '週六',
+        '眼臉': '眼瞼',
+        '部份': '部分',
+        '淺移默化': '潛移默化',
+        '佈滿': '布滿',
+        '繁延': '繁衍',
+        '公佈': '公布',
+        '頻臨': '瀕臨',
+        '佈置': '布置',
+        '札根': '扎根',
+        '扎營': '紮營',
+        '扎實': '紮實',
+        '秘訣': '祕訣',
+        '雨過天晴': '雨過天青',
+        '晴天霹靂': '青天霹靂',
+        '講國語': '講中文',
+        '臺語': '閩南語',
+        '背逆': '悖逆',
+        '必需': '必須',
+        '須要': '需要',
+        '漫延': '蔓延',
+        '綑綁': '捆綁',
+        '飢荒': '饑荒',
+        '警醒': '儆醒',
+        '夢靨': '夢魘',
+        '補風': '捕風',
+        '不技不求': '不忮不求',
+        '日漸好轉': '日見好轉',
+        '榻陷': '塌陷',
+        '規畫': '規劃',
+        '企畫': '企劃',
+        // 您可以在這裡添加更多的錯字對應
+    };
+
+    // 中文數字轉換為阿拉伯數字的函數
+    function chineseToNumber(chineseNum) {
+        const cnNums = {'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+        const cnUnits = {'十':10,'百':100,'千':1000,'萬':10000,'億':100000000};
+
+        let total = 0;
+        let section = 0;
+        let number = 0;
+
+        for(let i = 0; i < chineseNum.length; i++){
+            const c = chineseNum.charAt(i);
+            if(cnNums.hasOwnProperty(c)){
+                number = cnNums[c];
+            }else if(cnUnits.hasOwnProperty(c)){
+                let unit = cnUnits[c];
+                if(unit === 10000 || unit === 100000000){
+                    section = (section + number) * unit;
+                    total += section;
+                    section = 0;
+                }else{
+                    section += number * unit;
+                }
+                number = 0;
+            }else if(/\d/.test(c)){
+                number = parseInt(c, 10);
+            }else{
+                // 跳過未知字符
+                continue;
+            }
+        }
+        return total + section + number;
+    }
+
+    // 將阿拉伯數字轉換為中文數字的函數
+    function numberToChinese(num) {
+        const cnNums = ['零','一','二','三','四','五','六','七','八','九'];
+        const cnUnits = ['','十','百','千','萬','億'];
+        let str = '';
+        let numStr = num.toString();
+        let len = numStr.length;
+        for(let i = 0; i < len; i++){
+            let n = numStr.charAt(len - i -1);
+            let digit = cnNums[n];
+            let unit = cnUnits[i % cnUnits.length];
+            if (digit === '零' && str.startsWith('零')) {
+                continue;
+            }
+            str = digit + unit + str;
+        }
+        // 處理多餘的零
+        str = str.replace(/零+/g, '零');
+        str = str.replace(/零$/, '');
+        str = str.replace(/^一十/, '十'); // 例如一十變成十
+        return str;
+    }
+
+    // 判斷是否為經文引用
+    function isScriptureReference(content) {
+        for (let fullName in bookAbbreviations) {
+            if (content.startsWith(fullName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 分離章和節的函數，處理多種格式
+    function splitChapterAndVerse(content) {
+        const regex = /^([^\d零一二三四五六七八九十百千萬億章篇節：:.,-]*)?([零一二三四五六七八九十百千萬億\d]+)(?:章|篇)?[：:.,]?\s*([零一二三四五六七八九十百千萬億\d\-]*)(?:節)?/;
+        let match = content.match(regex);
+        if (match) {
+            return {
+                bookName: match[1] ? match[1] : '',
+                chapter: match[2],
+                verse: match[3],
+            };
+        }
+        return null;
+    }
+
+    function processText() {
+        let inputDiv = document.getElementById('inputText');
+        let text = inputDiv.innerText || inputDiv.textContent;
+
+        // 在輸出中，先進行錯字替換，並標記替換過的部分
+        let processedText = text;
+
+        // 替換錯字並高亮正確的詞語
+        for (let typo in typoCorrections) {
+            let correction = typoCorrections[typo];
+            let typoRegex = new RegExp(typo, 'g');
+            processedText = processedText.replace(typoRegex, function(matched) {
+                return `<span class="typo-highlight">${correction}</span>`;
+            });
+        }
+
+        // 解析經文引用並高亮
+        processedText = processedText.replace(/（(.*?)）/g, function (match, content) {
+            let originalContent = content;
+            let bookName = '';
+            let chapter = '';
+            let verse = '';
+
+            // 提取書卷名
+            for (let fullName in bookAbbreviations) {
+                if (content.startsWith(fullName)) {
+                    bookName = bookAbbreviations[fullName];
+                    content = content.substring(fullName.length);
+                    break;
+                }
+            }
+
+            if (!bookName) {
+                return `（${originalContent}）`;
+            }
+
+            // 分離章和節
+            let splitResult = splitChapterAndVerse(content);
+            if (!splitResult) {
+                return `（${originalContent}）`;
+            }
+
+            chapter = splitResult.chapter;
+            verse = splitResult.verse;
+
+            // 如果經文引用已經是期望的格式，則不處理
+            let expectedFormat = `${bookName}${chapter}${verse ? verse : ''}`;
+            if (content === expectedFormat) {
+                return match; // 不做任何修改
+            }
+
+            // 轉換章為中文數字（如果是阿拉伯數字）
+            let chapterChinese = '';
+            if (/^\d+$/.test(chapter)) {
+                chapterChinese = numberToChinese(parseInt(chapter, 10));
+            } else {
+                chapterChinese = chapter; // 保持原有的中文章數
+            }
+
+            // 節數保持為阿拉伯數字
+            let verseDisplay = '';
+            if (verse) {
+                if (verse.includes('-')) {
+                    let verses = verse.split('-');
+                    let verseStart = verses[0];
+                    let verseEnd = verses[1];
+                    // 將中文數字轉換為阿拉伯數字
+                    verseStart = /^\d+$/.test(verseStart) ? verseStart : chineseToNumber(verseStart).toString();
+                    verseEnd = /^\d+$/.test(verseEnd) ? verseEnd : chineseToNumber(verseEnd).toString();
+                    verseDisplay = `${verseStart}-${verseEnd}`;
+                } else {
+                    // 將中文數字轉換為阿拉伯數字
+                    verseDisplay = /^\d+$/.test(verse) ? verse : chineseToNumber(verse).toString();
+                }
+            }
+
+            // 組合新的經文引用
+            let newReference = `（${bookName}${chapterChinese}${verseDisplay}）`;
+
+            // 高亮處理
+            return `<span class="highlight">${newReference}</span>`;
+        });
+
+        // 更新輸出
+        document.getElementById('output').innerHTML = processedText;
+
+        // 在輸入區域，高亮錯字和經文引用
+        let highlightedInput = text;
+
+        // 高亮錯字
+        for (let typo in typoCorrections) {
+            let typoRegex = new RegExp(typo, 'g');
+            highlightedInput = highlightedInput.replace(typoRegex, function(matched) {
+                return `<span class="typo-highlight">${matched}</span>`;
+            });
+        }
+
+        // 高亮經文引用
+        highlightedInput = highlightedInput.replace(/（(.*?)）/g, function (match, content) {
+            if (isScriptureReference(content)) {
+                return `<span class="highlight">${match}</span>`;
+            } else {
+                return match;
+            }
+        });
+
+        // 更新輸入框
+        document.getElementById('inputText').innerHTML = highlightedInput;
+
+        // 自動調整高度
+        autoResize(document.getElementById('inputText'));
+        autoResize(document.getElementById('output'));
+    }
+
+    // 自動調整框架高度
+    function autoResize(element) {
+        element.style.height = 'auto';
+        element.style.height = element.scrollHeight + 'px';
+    }
+
+    // 在輸入時高亮顯示錯字和經文
+    document.getElementById('inputText').addEventListener('input', function() {
+        let text = this.innerText || this.textContent;
+
+        // 高亮錯字
+        let highlightedInput = text;
+        for (let typo in typoCorrections) {
+            let typoRegex = new RegExp(typo, 'g');
+            highlightedInput = highlightedInput.replace(typoRegex, function(matched) {
+                return `<span class="typo-highlight">${matched}</span>`;
+            });
+        }
+
+        // 高亮經文引用
+        highlightedInput = highlightedInput.replace(/（(.*?)）/g, function (match, content) {
+            if (isScriptureReference(content)) {
+                return `<span class="highlight">${match}</span>`;
+            } else {
+                return match;
+            }
+        });
+
+        this.innerHTML = highlightedInput;
+
+        // 移動光標到最後
+        placeCaretAtEnd(this);
+    });
+
+    // 保持光標在內容最後
+    function placeCaretAtEnd(el) {
+        el.focus();
+        if (typeof window.getSelection != "undefined"
+                && typeof document.createRange != "undefined") {
+            let range = document.createRange();
+            range.selectNodeContents(el);
+            range.collapse(false);
+            let sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    }
+</script>
+
+</body>
+</html>
