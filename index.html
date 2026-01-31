@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>靈感寫手 Mobile (完整邏輯版)</title>
+  <title>靈感寫手 Mobile (整合加強版)</title>
 
+  <!-- OpenCC (開源 CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
 
   <style>
@@ -16,8 +17,10 @@
       --border: #c6c6c8;
       --warn: #ff9500;
       --danger: #ff3b30;
+      --toolbar-height: 60px;
+      --kb-offset: 0px; /* 鍵盤彈起時向上位移 */
     }
-    
+
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     body {
@@ -26,80 +29,90 @@
       display: flex; flex-direction: column; height: 100vh; overflow: hidden;
     }
 
-    /* --- 手機版 UI 元件 --- */
-    
-    /* 頂部導航 */
+    /* 1. 頂部導航 */
     header {
-      background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
-      padding: 12px 16px; border-bottom: 0.5px solid var(--border);
+      background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+      padding: 10px 16px; border-bottom: 0.5px solid var(--border);
       display: flex; justify-content: space-between; align-items: center; z-index: 100;
     }
-    .brand { font-size: 17px; font-weight: 700; }
-    .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #e5e5ea; color: #8e8e93; }
+    .brand { font-size: 17px; font-weight: 800; }
+    .status-badge {
+      font-size: 11px; padding: 4px 8px; border-radius: 12px;
+      background: #e5e5ea; color: #8e8e93; transition: 0.2s;
+      font-weight: 700;
+    }
     .status-badge.saving { background: var(--primary); color: white; }
+    .status-badge.danger { background: var(--danger); color: white; }
+    .status-badge.ok { background: #34c759; color: white; }
 
-    /* 頁籤切換 (Tabs) */
+    /* 2. Tabs */
     .tabs-nav {
-      display: flex; padding: 10px 16px 0; background: var(--bg);
+      display: flex; padding: 8px 16px 0; background: var(--bg); border-bottom: 1px solid var(--border);
     }
     .tab-btn {
-      flex: 1; padding: 8px; text-align: center; font-size: 14px; font-weight: 600;
-      color: #8e8e93; border-bottom: 2px solid transparent; transition: 0.2s;
+      flex: 1; padding: 10px; text-align: center; font-size: 15px; font-weight: 800;
+      color: #8e8e93; border-bottom: 3px solid transparent; transition: 0.2s; cursor: pointer;
+      user-select: none;
     }
     .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-    /* 內容容器 */
+    /* 3. 內容容器 */
     .viewport { flex: 1; position: relative; overflow: hidden; background: var(--card-bg); }
-    .page { 
-      position: absolute; inset: 0; display: none; flex-direction: column; 
-      padding: 16px; overflow-y: auto; 
+    .page {
+      position: absolute; inset: 0; display: none; flex-direction: column;
+      padding: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch;
     }
     .page.active { display: flex; }
 
-    /* 輸入框 */
     textarea {
       flex: 1; width: 100%; border: none; outline: none; resize: none;
-      font-size: 17px; line-height: 1.6; padding-bottom: 40px; /* 預留空間給浮窗 */
+      font-size: 18px; line-height: 1.65; padding-bottom: 90px;
+      font-family: inherit; background: transparent;
     }
 
-    /* 預覽區樣式 (沿用原本的高亮邏輯) */
-    .highlight-scripture { background: #d1e7dd; color: #0f5132; padding: 0 2px; border-radius: 4px; font-weight: 700; }
+    /* 預覽區高亮 */
+    .highlight-scripture { background: #d1e7dd; color: #0f5132; padding: 0 2px; border-radius: 4px; font-weight: 800; }
     .highlight-typo { text-decoration: line-through; color: #8e8e93; margin-right: 2px; }
-    .highlight-correction { background: #fff3cd; color: #b45309; font-weight: 700; padding: 0 4px; border-radius: 4px; }
+    .highlight-correction { background: #fff3cd; color: #b45309; font-weight: 900; padding: 0 4px; border-radius: 4px; }
 
-    /* 經文浮窗 (手機優化版：底部 Toast) */
+    /* 4. 經文浮窗 */
     .verse-pop {
-      position: fixed; bottom: 80px; left: 16px; right: 16px;
-      background: #1c1c1e; color: white; padding: 16px; border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-      display: none; z-index: 200; transform: translateY(10px); opacity: 0;
-      transition: 0.2s;
+      position: fixed;
+      bottom: calc(var(--toolbar-height) + 20px + env(safe-area-inset-bottom) + var(--kb-offset));
+      left: 16px; right: 16px;
+      background: #1c1c1e; color: white; padding: 16px; border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      display: none; z-index: 200; transform: translateY(20px); opacity: 0;
+      transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     .verse-pop.show { display: block; transform: translateY(0); opacity: 1; }
-    .pop-header { display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; }
-    .pop-ref { color: #60a5fa; font-weight: 700; }
-    .pop-body { max-height: 120px; overflow-y: auto; font-size: 14px; opacity: 0.9; margin-bottom: 12px; line-height: 1.5; }
-    .pop-actions { display: flex; gap: 8px; }
-    
-    /* 底部工具列 (可滑動) */
+    .pop-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; gap: 10px; }
+    .pop-ref { color: #60a5fa; font-weight: 900; font-size: 16px; }
+    .pop-body { max-height: 120px; overflow-y: auto; font-size: 15px; opacity: 0.95; margin-bottom: 14px; line-height: 1.55; white-space: pre-wrap; }
+    .pop-actions { display: flex; gap: 10px; }
+
+    /* 5. 底部工具列 (可滑動) */
     .bottom-toolbar {
-      padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-      background: rgba(255,255,255,0.95); border-top: 0.5px solid var(--border);
-      display: flex; gap: 10px; overflow-x: auto;
-      scrollbar-width: none; /* Firefox Hidden */
+      height: var(--toolbar-height);
+      padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+      background: rgba(255,255,255,0.98); border-top: 0.5px solid var(--border);
+      display: flex; gap: 12px; overflow-x: auto; align-items: center;
+      scrollbar-width: none;
     }
     .bottom-toolbar::-webkit-scrollbar { display: none; }
-    
-    .tool-btn {
-      padding: 8px 14px; border-radius: 8px; border: 1px solid #e5e5ea;
-      background: white; font-size: 13px; font-weight: 600; white-space: nowrap; flex-shrink: 0;
-    }
-    .tool-btn:active { background: #f2f2f7; }
-    .btn-main { background: var(--primary); color: white; border: none; }
-    .btn-danger { color: var(--danger); border-color: #fee2e2; background: #fff5f5; }
 
-    /* 開關樣式 */
-    .toggle-group { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+    .tool-btn {
+      padding: 8px 14px; border-radius: 10px; border: 1px solid #e5e5ea;
+      background: #f2f2f7; font-size: 13px; font-weight: 800; white-space: nowrap; flex-shrink: 0;
+      color: #333; user-select: none;
+    }
+    .tool-btn:active { background: #e5e5ea; transform: scale(0.96); }
+    .btn-main { background: var(--primary); color: white; border: none; }
+    .btn-danger { color: var(--danger); background: #fff5f5; border-color: #fee2e2; }
+
+    .toggle-group { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; white-space: nowrap; user-select: none; }
+    .toggle-group input { transform: translateY(1px); }
+    .sep { width: 1px; height: 20px; background: #ddd; flex-shrink: 0; }
   </style>
 </head>
 
@@ -107,7 +120,7 @@
 
   <header>
     <div class="brand">✍️ 靈感寫手</div>
-    <div id="autosaveBadge" class="status-badge">準備就緒</div>
+    <div id="autosaveBadge" class="status-badge">載入中...</div>
   </header>
 
   <div class="tabs-nav">
@@ -116,68 +129,109 @@
   </div>
 
   <div class="viewport">
-    
     <div id="page-edit" class="page active">
-      <textarea id="inputText" placeholder="在這裡寫作... 輸入「太1.1」試試看經文快插"></textarea>
-      
+      <textarea id="inputText" placeholder="在這裡寫作... 輸入「太1.1」「伯7.3-8.1」會自動偵測經文（支援尾巴標點）"></textarea>
+
       <div id="versePop" class="verse-pop">
         <div class="pop-header">
           <span id="versePopRef" class="pop-ref"></span>
-          <span style="font-size:11px; opacity:0.6;">Alt+Enter 插入</span>
+          <span style="font-size:12px; color:#aaa;">偵測到經文</span>
         </div>
-        <div id="versePopText" class="pop-body">載入中...</div>
+        <div id="versePopText" class="pop-body"></div>
         <div class="pop-actions">
-          <button class="tool-btn btn-main" style="flex:1" onclick="insertVerse()">插入經文</button>
+          <button class="tool-btn btn-main" style="flex:2" onclick="insertVerse()">插入</button>
           <button class="tool-btn" style="flex:1" onclick="closeVersePop()">關閉</button>
         </div>
       </div>
     </div>
 
     <div id="page-preview" class="page">
-      <div id="output" style="line-height: 1.8; font-size: 16px;"></div>
+      <div id="output" style="line-height: 1.85; font-size: 18px;"></div>
     </div>
-
   </div>
 
   <div class="bottom-toolbar">
     <button class="tool-btn btn-main" onclick="applyFixesToInput()">🪄 一鍵修正</button>
     <button class="tool-btn" onclick="toTraditional()">繁體</button>
     <button class="tool-btn" onclick="toSimplified()">簡體</button>
-    <button class="tool-btn" onclick="copyResult()">📋 複製結果</button>
+    <button class="tool-btn" onclick="copyInput()">📝 複製輸入</button>
+    <button class="tool-btn" onclick="copyResult()">📋 複製預覽</button>
+
+    <div class="sep"></div>
+    <label class="toggle-group"><input type="checkbox" id="autoVerseToggle" checked> 經文</label>
+    <label class="toggle-group"><input type="checkbox" id="replaceRefToggle" checked> 取代</label>
+    <label class="toggle-group"><input type="checkbox" id="allowChapterToggle"> 整章</label>
+    <div class="sep"></div>
+
     <button class="tool-btn btn-danger" onclick="clearText()">清空</button>
-    
-    <div style="width:1px; height:20px; background:#ddd; margin:0 4px;"></div>
-    <label class="toggle-group">
-      <input type="checkbox" id="autoVerseToggle" checked> 自動偵測
-    </label>
-    <label class="toggle-group">
-      <input type="checkbox" id="replaceRefToggle" checked> 取代引用
-    </label>
   </div>
 
 <script>
 /* =========================================================
-   UI 邏輯：處理手機版的分頁切換
+   0) 小工具：剪貼簿（iOS/瀏覽器權限 fallback）
    ========================================================= */
-function switchTab(tabName) {
-  // 切換 Tab 樣式
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  if(tabName === 'edit') document.querySelectorAll('.tab-btn')[0].classList.add('active');
-  if(tabName === 'preview') document.querySelectorAll('.tab-btn')[1].classList.add('active');
-
-  // 切換頁面顯示
-  document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-  document.getElementById('page-' + tabName).classList.add('active');
-
-  // 如果切換到預覽，執行一次邏輯運算
-  if(tabName === 'preview') processText();
+async function safeClipboardWrite(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return !!ok;
+  } catch (e) {
+    return false;
+  }
 }
 
 /* =========================================================
-   核心邏輯區 (完全保留原始代碼)
+   1) UI 控制：Tabs（你原本的，保留）
    ========================================================= */
+let currentTab = 'edit';
+function switchTab(tabName) {
+  currentTab = tabName;
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
 
-// A) 錯別字與規則庫 (完整保留)
+  if(tabName === 'edit') {
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    document.getElementById('page-edit').classList.add('active');
+  } else {
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    document.getElementById('page-preview').classList.add('active');
+    processText(); // 預覽時才運算
+  }
+}
+
+/* =========================================================
+   2) 鍵盤上移：讓 verse toast 不被 iOS 鍵盤蓋住
+   ========================================================= */
+function bindKeyboardOffset() {
+  if (!window.visualViewport) return;
+  const vv = window.visualViewport;
+  const update = () => {
+    // 估算鍵盤高度（視覺視口縮小造成的差）
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty('--kb-offset', kb + 'px');
+  };
+  vv.addEventListener('resize', update);
+  vv.addEventListener('scroll', update);
+  update();
+}
+
+/* =========================================================
+   3) 錯別字與規則庫（保留 + 可擴充）
+   ========================================================= */
 const hardRules = [
   ['上帝', '神'],
   ['台', '臺'],
@@ -198,7 +252,9 @@ const typoCorrections = {
   '規畫':'規劃','企畫':'企劃'
 };
 
-// B) 經文簡稱 (完整保留)
+/* =========================================================
+   4) 經文簡稱（你原本校稿高亮用，保留）
+   ========================================================= */
 const bookAbbreviations = {
   '創世記':'創','出埃及記':'出','利未記':'利','民數記':'民','申命記':'申',
   '約書亞記':'書','士師記':'士','路得記':'得','撒母耳記上':'撒上','撒母耳記下':'撒下',
@@ -217,9 +273,10 @@ const bookAbbreviations = {
   '馬太':'太','馬可':'可','路加':'路','約翰':'約'
 };
 
-// C) Book Map (完整保留)
+/* =========================================================
+   5) Book Map（用於 bible.csv 檢索）
+   ========================================================= */
 const bookMap = {
-  // 舊約
   '創':'Gen','創世':'Gen','創世記':'Gen',
   '出':'Exo','出埃及':'Exo','出埃及記':'Exo',
   '利':'Lev','利未':'Lev','利未記':'Lev',
@@ -259,7 +316,6 @@ const bookMap = {
   '該':'Hag','哈該':'Hag','哈該書':'Hag',
   '亞':'Zec','撒迦利亞':'Zec','撒迦利亞書':'Zec',
   '瑪':'Mal','瑪拉基':'Mal','瑪拉基書':'Mal',
-  // 新約
   '太':'Mat','馬太':'Mat','馬太福音':'Mat',
   '可':'Mak','馬可':'Mak','馬可福音':'Mak',
   '路':'Luk','路加':'Luk','路加福音':'Luk',
@@ -290,7 +346,9 @@ const bookMap = {
 };
 const sortedBookNames = Object.keys(bookMap).sort((a,b)=>b.length-a.length);
 
-// D) 章數轉中文工具 (完整保留)
+/* =========================================================
+   6) 章數轉中文（保留）
+   ========================================================= */
 function chineseToNumber(chineseNum){
   const cnNums={'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
   const cnUnits={'十':10,'百':100,'千':1000,'萬':10000};
@@ -303,31 +361,41 @@ function chineseToNumber(chineseNum){
       let unit=cnUnits[c];
       if(unit===10 && number===0 && !unitOps) number=1;
       section=(section+number)*unit;
-      if(unit>=10000){ total+=section; section=0; } else { total+=section; section=0; }
+      total+=section; section=0;
       number=0; unitOps=true;
     } else if(/\d/.test(c)){ number=parseInt(c,10); }
   }
   if(!unitOps) total+=number;
-  if(total===0 && chineseNum.startsWith('十')){ let temp=10; if(chineseNum.length>1) temp+=cnNums[chineseNum[1]]||0; return temp; }
+  if(total===0 && chineseNum.startsWith('十')){
+    let temp=10;
+    if(chineseNum.length>1) temp+=cnNums[chineseNum[1]]||0;
+    return temp;
+  }
   return total>0?total:number;
 }
 function numberToChinese(num){
   const cnNums=['零','一','二','三','四','五','六','七','八','九'];
   const cnUnits=['','十','百','千'];
-  if(num===0) return '零'; if(num===10) return '十';
+  num = parseInt(num,10);
+  if(num===0) return '零';
+  if(num===10) return '十';
   if(num>10 && num<20) return '十'+cnNums[num%10];
   let str='', s=num.toString(), len=s.length;
   for(let i=0;i<len;i++){
     let n=parseInt(s.charAt(len-i-1));
     let digit=cnNums[n], unit=cnUnits[i];
-    if(n!==0) str=digit+unit+str; else if(str.length>0 && !str.startsWith('零')) str='零'+str;
+    if(n!==0) str=digit+unit+str;
+    else if(str.length>0 && !str.startsWith('零')) str='零'+str;
   }
   return str.replace(/零+$/,'');
 }
 
-// E) Bible CSV 載入 & Worker (完整保留)
+/* =========================================================
+   7) Bible CSV 載入 + Worker（保留）
+   ========================================================= */
 let bibleData=[];
 let bibleReady=false;
+
 let openccReady=false;
 let t2s=null, s2t=null;
 
@@ -336,7 +404,10 @@ async function initOpenCC(){
     t2s = OpenCC.Converter({ from:'tw', to:'cn' });
     s2t = OpenCC.Converter({ from:'cn', to:'tw' });
     openccReady=true;
-  }catch(e){ openccReady=false; console.warn('OpenCC init fail', e); }
+  }catch(e){
+    openccReady=false;
+    console.warn('OpenCC init fail', e);
+  }
 }
 
 function parseCSVInWorker(csvText){
@@ -353,8 +424,11 @@ function parseCSVInWorker(csvText){
             const v = parseInt(parts[2].trim());
             if(!isNaN(c) && !isNaN(v)){
               out.push({
-                book: parts[0].trim(), chapter: c, verse: v,
-                text: parts.slice(3).join(',').trim(), id: c*1000 + v
+                book: parts[0].trim(),
+                chapter: c,
+                verse: v,
+                text: parts.slice(3).join(',').trim(),
+                id: c*1000 + v
               });
             }
           }
@@ -370,59 +444,94 @@ function parseCSVInWorker(csvText){
 }
 
 async function loadBibleCSV(){
-  const outputEl=document.getElementById('output');
   try{
+    setAutosaveBadge('載入 bible.csv…', 'saving');
     const res = await fetch(`./bible.csv?v=${Date.now()}`, { cache:'no-store' });
     if(!res.ok) throw new Error('HTTP '+res.status);
     const text=(await res.text()).replace(/^\uFEFF/,'');
     await parseCSVInWorker(text);
     bibleReady=true;
-    setAutosaveBadge('CSV 載入成功');
+    setAutosaveBadge('CSV OK', 'ok');
+    setTimeout(()=>setAutosaveBadge('準備就緒', 'idle'), 900);
   }catch(e){
     bibleReady=false;
-    setAutosaveBadge('CSV 載入失敗', true);
+    setAutosaveBadge('CSV 失敗', 'danger');
   }
 }
 
-// F) 經文引用解析 Regex (完整保留)
-function cnToNum(str){ /* 已整合在 chineseToNumber 上方，此處為解析參考的輔助 */
-    return chineseToNumber(str);
+/* =========================================================
+   8) 經文引用解析（保留 + 強化：標點剝除）
+   ========================================================= */
+function cnToNum(str){
+  const val = chineseToNumber(str);
+  return isNaN(val) ? null : val;
 }
+
 function parseRefPart(str, defaultBook, defaultChapter){
-  let bookKey=defaultBook; let remain=str; let hasBookInStr=false;
+  let bookKey=defaultBook;
+  let remain=str;
+  let hasBookInStr=false;
+
   for(const key of sortedBookNames){
-    if(str.startsWith(key)){ bookKey=bookMap[key]; remain=str.substring(key.length); hasBookInStr=true; break; }
+    if(str.startsWith(key)){
+      bookKey=bookMap[key];
+      remain=str.substring(key.length);
+      hasBookInStr=true;
+      break;
+    }
   }
+
   remain=remain.replace(/[.．。,，]/g,':');
   let c,v, splitIdx=-1;
+
   const isDigit=(ch)=>/[0-9]/.test(ch);
   const isCnDigit=(ch)=>/[一二三四五六七八九十百]/.test(ch);
-  for(let i=0;i<remain.length-1;i++){ if(isCnDigit(remain[i]) && isDigit(remain[i+1])){ splitIdx=i+1; break; } }
-  
+
+  for(let i=0;i<remain.length-1;i++){
+    if(isCnDigit(remain[i]) && isDigit(remain[i+1])){ splitIdx=i+1; break; }
+  }
+
   if(remain.includes(':')){
-    const p=remain.split(':'); c = cnToNum(p[0]) || parseInt(p[0]); v = cnToNum(p[1]) || parseInt(p[1]);
+    const p=remain.split(':');
+    c = cnToNum(p[0]) || parseInt(p[0]);
+    v = cnToNum(p[1]) || parseInt(p[1]);
   }else if(splitIdx!==-1){
-    c = cnToNum(remain.substring(0,splitIdx)); v = parseInt(remain.substring(splitIdx));
+    c = cnToNum(remain.substring(0,splitIdx));
+    v = parseInt(remain.substring(splitIdx));
   }else{
     const val = cnToNum(remain) || parseInt(remain);
-    if(defaultChapter && !hasBookInStr){ c=defaultChapter; v=val; } else { c=val; v=null; }
+    if(defaultChapter && !hasBookInStr){ c=defaultChapter; v=val; }
+    else { c=val; v=null; }
   }
+
   return { book: bookKey, chapter: c, verse: v, id: (c && v) ? (c*1000+v) : null, isChapterOnly: (c && !v) };
 }
 
 function parseSearchQuery(input){
-  let clean=input.replace(/\s+/g,'').replace(/[.．。,，]/g,':').replace(/[—~～]/g,'-');
+  let clean=input.replace(/\s+/g,'')
+                 .replace(/[.．。,，]/g,':')
+                 .replace(/[—~～]/g,'-');
+
+  // 中文數字 + 阿拉伯數字交界（太一1）
   clean=clean.replace(/([一二三四五六七八九十百])(\d)/g,'$1:$2');
+
   if(clean.includes('-')){
     const [startStr,endStr]=clean.split('-');
     const startObj=parseRefPart(startStr,null,null);
     if(!startObj.chapter) return null;
+
     const contextChap = startObj.verse ? startObj.chapter : null;
     const endObj=parseRefPart(endStr,startObj.book,contextChap);
     if(!endObj.book) endObj.book=startObj.book;
-    let startId=startObj.id; let endId=0;
-    if(endObj.verse) endId=endObj.chapter*1000+endObj.verse; else endId=endObj.chapter*1000+999;
+
+    let startId=startObj.id;
+    let endId=0;
+
+    if(endObj.verse) endId=endObj.chapter*1000+endObj.verse;
+    else endId=endObj.chapter*1000+999;
+
     if(startObj.isChapterOnly) startId=startObj.chapter*1000;
+
     return { type:'range', book:startObj.book, startId, endId };
   }else{
     const obj=parseRefPart(clean,null,null);
@@ -430,11 +539,14 @@ function parseSearchQuery(input){
   }
 }
 
-// G) 查找與格式化 (完整保留)
+/* =========================================================
+   9) 查找與插入
+   ========================================================= */
 function bookCodeToShort(bookCode){
   const keys = Object.keys(bookMap).filter(k=>bookMap[k]===bookCode);
   if(!keys.length) return bookCode;
-  keys.sort((a,b)=>a.length-b.length); return keys[0];
+  keys.sort((a,b)=>a.length-b.length);
+  return keys[0];
 }
 function formatRefShort(bookCode, chapter, verse){
   const short=bookCodeToShort(bookCode);
@@ -444,10 +556,14 @@ function formatRefShort(bookCode, chapter, verse){
 }
 function findVersesByQuery(query){
   if(!bibleReady || !query) return [];
-  if(query.type==='range') return bibleData.filter(e=>e.book===query.book && e.id>=query.startId && e.id<=query.endId);
+  if(query.type==='range'){
+    return bibleData.filter(e=>e.book===query.book && e.id>=query.startId && e.id<=query.endId);
+  }
   if(!query.book || !query.chapter) return [];
   const c=parseInt(query.chapter);
-  if(query.verse===null || query.verse===undefined) return bibleData.filter(e=>e.book===query.book && e.chapter===c);
+  if(query.verse===null || query.verse===undefined){
+    return bibleData.filter(e=>e.book===query.book && e.chapter===c);
+  }
   const v=parseInt(query.verse);
   return bibleData.filter(e=>e.book===query.book && e.chapter===c && e.verse===v);
 }
@@ -456,175 +572,344 @@ function buildInsertText(verses){
   return verses.map(e=>`${e.text} ${formatRefShort(e.book, e.chapter, e.verse)}`).join('\n');
 }
 
-// H) 偵測邏輯 (UI 改為控制手機浮窗)
+/* =========================================================
+   10) 偵測邏輯（強化版：支援尾巴標點 / 括號）
+   ========================================================= */
 let lastDetected = null;
+
 function getLastTokenNearCursor(text, cursor){
-  let i = cursor - 1; while(i>=0 && !/\s/.test(text[i])) i--; const start=i+1;
-  let j = cursor; while(j<text.length && !/\s/.test(text[j])) j++; const end=j;
+  // 以「空白/換行」為界，取游標附近 token
+  let i = cursor - 1;
+  while(i>=0 && !/\s/.test(text[i])) i--;
+  const start=i+1;
+
+  let j = cursor;
+  while(j<text.length && !/\s/.test(text[j])) j++;
+  const end=j;
+
   return { token:text.slice(start,end), start, end };
 }
+
+// 去掉 token 前後常見標點（但保留 : - . 這些會用在經文）
+function cleanToken(raw){
+  if(!raw) return '';
+  let s = raw.trim();
+
+  // 先剝掉括號與書名號等包裹
+  s = s.replace(/^[\(\（\[\{「『【《<]+/g, '');
+  s = s.replace(/[\)\）\]\}」』】》>]+$/g, '');
+
+  // 再剝掉尾巴句讀（常見：。 ， 、 ！ ？ ； ：）
+  s = s.replace(/[，。、；;!！?？]+$/g, '');
+
+  // 若還有引號結尾
+  s = s.replace(/[”’"'」』]+$/g, '');
+
+  return s.trim();
+}
+
 function maybeDetectVerse(){
-  const autoOn=document.getElementById('autoVerseToggle').checked;
+  const autoOn = document.getElementById('autoVerseToggle').checked;
   if(!autoOn) return;
-  const ta=document.getElementById('inputText');
-  const text=ta.value; const cursor=ta.selectionStart;
+
+  const ta = document.getElementById('inputText');
+  const text = ta.value;
+  const cursor = ta.selectionStart;
+
   const { token, start, end } = getLastTokenNearCursor(text, cursor);
-  if(!token || token.length < 3) { closeVersePop(); return; }
-  const cleaned = token.replace(/[()（）\[\]]/g,'').trim();
-  const q=parseSearchQuery(cleaned);
-  if(!q) { closeVersePop(); return; }
-  const verses=findVersesByQuery(q).slice(0, 30);
-  if(!verses.length) { closeVersePop(); return; }
-  if(q.type==='single' && (q.verse===null || q.verse===undefined)) { closeVersePop(); return; }
-  
+  const cleaned = cleanToken(token);
+
+  if(!cleaned || cleaned.length < 2){
+    closeVersePop();
+    return;
+  }
+
+  const q = parseSearchQuery(cleaned);
+  if(!q){
+    closeVersePop();
+    return;
+  }
+
+  // 允許整章浮窗？（預設關，避免你打「創1」就噴）
+  const allowChapter = document.getElementById('allowChapterToggle').checked;
+  if(q.type==='single' && (q.verse===null || q.verse===undefined) && !allowChapter){
+    closeVersePop();
+    return;
+  }
+
+  // 預覽最多 30 節（整章也切 30，避免 toast 爆）
+  const verses = findVersesByQuery(q).slice(0, 30);
+  if(!verses.length){
+    closeVersePop();
+    return;
+  }
+
   const insertText = buildInsertText(verses);
   lastDetected = { token, cleaned, start, end, verses, insertText };
-  
-  const pop=document.getElementById('versePop');
-  const refEl=document.getElementById('versePopRef');
-  const txtEl=document.getElementById('versePopText');
-  const first=verses[0];
+
+  const pop = document.getElementById('versePop');
+  const refEl = document.getElementById('versePopRef');
+  const txtEl = document.getElementById('versePopText');
+
+  const first = verses[0];
   refEl.textContent = formatRefShort(first.book, first.chapter, first.verse);
   txtEl.textContent = insertText;
   pop.classList.add('show');
 }
+
 function closeVersePop(){
   document.getElementById('versePop').classList.remove('show');
-  lastDetected=null;
-}
-function insertVerse(){
-  if(!lastDetected) return;
-  const ta=document.getElementById('inputText');
-  const replaceOn=document.getElementById('replaceRefToggle').checked;
-  const insertText = lastDetected.insertText;
-  const before = ta.value.slice(0, replaceOn ? lastDetected.start : ta.selectionStart);
-  const after  = ta.value.slice(replaceOn ? lastDetected.end : ta.selectionEnd);
-  ta.value = before + insertText + after;
-  const pos = (before + insertText).length;
-  ta.focus(); ta.setSelectionRange(pos, pos);
-  closeVersePop(); triggerAutosave(); processText();
+  lastDetected = null;
 }
 
-// I) 校稿邏輯 (完整保留)
+function insertVerse(){
+  if(!lastDetected) return;
+
+  const ta = document.getElementById('inputText');
+  const replaceOn = document.getElementById('replaceRefToggle').checked;
+
+  const insertText = lastDetected.insertText;
+
+  // 取代時：用 token 的 start/end；不取代：用當下選取
+  const before = ta.value.slice(0, replaceOn ? lastDetected.start : ta.selectionStart);
+  const after  = ta.value.slice(replaceOn ? lastDetected.end : ta.selectionEnd);
+
+  ta.value = before + insertText + after;
+
+  const pos = (before + insertText).length;
+  ta.focus();
+  ta.setSelectionRange(pos, pos);
+
+  closeVersePop();
+  triggerAutosave();
+  if(currentTab === 'preview') processText();
+}
+
+/* =========================================================
+   11) 校稿：預覽 + 一鍵套用（保留你的邏輯 + 安全 escape）
+   ========================================================= */
 function applyHardRulesPlain(text){
-  for(const [from,to] of hardRules){ text = text.split(from).join(to); } return text;
+  for(const [from,to] of hardRules){
+    text = text.split(from).join(to);
+  }
+  return text;
 }
 function applyTyposPlain(text){
   const keys = Object.keys(typoCorrections).sort((a,b)=>b.length-a.length);
-  for(const k of keys){ text = text.split(k).join(typoCorrections[k]); } return text;
+  for(const k of keys){
+    text = text.split(k).join(typoCorrections[k]);
+  }
+  return text;
 }
-function getCleanFixedText(text){ text = applyHardRulesPlain(text); text = applyTyposPlain(text); return text; }
+function getCleanFixedText(text){
+  text = applyHardRulesPlain(text);
+  text = applyTyposPlain(text);
+  return text;
+}
+function escapeHtml(s){
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
 function processText(){
   const inputEl=document.getElementById('inputText');
   const outputEl=document.getElementById('output');
   let text=inputEl.value;
-  if(!text){ outputEl.innerHTML='<span style="color:#999;">等待輸入...</span>'; return; }
-  let preview=text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  
+
+  if(!text){
+    outputEl.innerHTML='<span style="color:#999;">等待輸入...</span>';
+    return;
+  }
+
+  let preview = escapeHtml(text);
+
+  // 硬規則標示
   for(const [from,to] of hardRules){
     const re=new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g');
     preview = preview.replace(re, `<span class="highlight-typo">${from}</span><span class="highlight-correction">${to}</span>`);
   }
+
+  // 錯別字標示
   for(let typo in typoCorrections){
     const correction=typoCorrections[typo];
     const re=new RegExp(typo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g');
     preview=preview.replace(re, `<span class="highlight-typo">${typo}</span><span class="highlight-correction">${correction}</span>`);
   }
-  
-  // 經文引用解析
+
+  // 經文引用高亮（你原本：括號內）
   preview = preview.replace(/（([^）]+)）/g, function(match, content){
     let foundBook=null, bookAbbr='';
     let sortedBooks=Object.keys(bookAbbreviations).sort((a,b)=>b.length-a.length);
-    for(let book of sortedBooks){ if(content.startsWith(book)){ foundBook=book; bookAbbr=bookAbbreviations[book]; break; } }
+    for(let book of sortedBooks){
+      if(content.startsWith(book)){
+        foundBook=book;
+        bookAbbr=bookAbbreviations[book];
+        break;
+      }
+    }
     if(!foundBook) return match;
+
     let remain=content.substring(foundBook.length).trim();
     let cleanRef=remain.replace(/[章篇節\s]/g,':').replace(/[:：.．]+/g,':');
     let parts=cleanRef.split(':').filter(p=>p);
     if(parts.length===0) return match;
-    let chapter=parts[0]; let verse=parts.length>1 ? parts[1] : '';
-    let chapterNum=chineseToNumber(chapter); let chapterChi=numberToChinese(chapterNum);
+
+    let chapter=parts[0];
+    let verse=parts.length>1 ? parts[1] : '';
+    let chapterNum=chineseToNumber(chapter);
+    let chapterChi=numberToChinese(chapterNum);
+
     let verseStr='';
     if(verse){
-       if(verse.includes('-')||verse.includes('－')||verse.includes('至')){
-         let vParts=verse.split(/[-－至]/);
-         let v1=chineseToNumber(vParts[0]); let v2=chineseToNumber(vParts[1]);
-         verseStr=`${v1}-${v2}`;
-       }else{ verseStr=chineseToNumber(verse).toString(); }
+      if(verse.includes('-')||verse.includes('－')||verse.includes('至')){
+        let vParts=verse.split(/[-－至]/);
+        let v1=chineseToNumber(vParts[0]);
+        let v2=chineseToNumber(vParts[1]);
+        verseStr=`${v1}-${v2}`;
+      }else{
+        verseStr=chineseToNumber(verse).toString();
+      }
     }
+
     let newRef=`（${bookAbbr}${chapterChi}${verseStr}）`;
     return `<span class="highlight-scripture">${newRef}</span>`;
   });
+
   preview = preview.replace(/\n/g,'<br>');
   outputEl.innerHTML=preview;
 }
+
 function applyFixesToInput(){
-  const ta=document.getElementById('inputText'); ta.value=getCleanFixedText(ta.value);
-  triggerAutosave(); processText(); alert('已完成一鍵修正');
+  const ta=document.getElementById('inputText');
+  ta.value = getCleanFixedText(ta.value);
+  triggerAutosave();
+  if(currentTab === 'preview') processText();
+  alert('已完成一鍵修正');
 }
 
-// J) OpenCC 轉換 (完整保留)
+/* =========================================================
+   12) OpenCC 轉換（保留）
+   ========================================================= */
 function toSimplified(){
-  if(!openccReady){ alert('OpenCC 載入中...'); return; }
+  if(!openccReady){
+    alert('OpenCC 載入中...（可能網路慢）');
+    return;
+  }
   const ta=document.getElementById('inputText');
-  let out=t2s(ta.value); out=getCleanFixedText(out);
-  ta.value=out; triggerAutosave(); processText();
+  let out=t2s(ta.value);
+  out=getCleanFixedText(out);
+  ta.value=out;
+  triggerAutosave();
+  if(currentTab === 'preview') processText();
 }
 function toTraditional(){
-  if(!openccReady){ alert('OpenCC 載入中...'); return; }
+  if(!openccReady){
+    alert('OpenCC 載入中...（可能網路慢）');
+    return;
+  }
   const ta=document.getElementById('inputText');
-  let out=s2t(ta.value); out=getCleanFixedText(out);
-  ta.value=out; triggerAutosave(); processText();
+  let out=s2t(ta.value);
+  out=getCleanFixedText(out);
+  ta.value=out;
+  triggerAutosave();
+  if(currentTab === 'preview') processText();
 }
 
-// K) 工具函數 (複製/清空)
-function copyResult(){
-  const outputEl=document.getElementById('output');
-  let tempDiv=document.createElement('div'); tempDiv.innerHTML=outputEl.innerHTML;
-  tempDiv.querySelectorAll('.highlight-typo').forEach(el=>el.remove());
-  const finalCopyText=tempDiv.innerText;
-  navigator.clipboard.writeText(finalCopyText).then(()=>alert('校稿結果已複製'));
+/* =========================================================
+   13) 複製 / 清空
+   ========================================================= */
+async function copyInput(){
+  const ta=document.getElementById('inputText');
+  const ok = await safeClipboardWrite(ta.value);
+  alert(ok ? '寫作內容已複製' : '複製失敗（瀏覽器權限）');
 }
+
+async function copyResult(){
+  const outputEl=document.getElementById('output');
+  let tempDiv=document.createElement('div');
+  tempDiv.innerHTML=outputEl.innerHTML;
+
+  // 移除錯字原文，只留更正後
+  tempDiv.querySelectorAll('.highlight-typo').forEach(el=>el.remove());
+  const finalCopyText = tempDiv.innerText;
+
+  const ok = await safeClipboardWrite(finalCopyText);
+  alert(ok ? '校稿結果已複製' : '複製失敗（瀏覽器權限）');
+}
+
 function clearText(){
   if(confirm('確定清空？')){
     document.getElementById('inputText').value='';
     document.getElementById('output').innerHTML='';
     localStorage.removeItem('writer_draft_v1');
-    closeVersePop(); setAutosaveBadge('已清空', true);
+    closeVersePop();
+    setAutosaveBadge('已清空', 'danger');
   }
 }
 
-// L) 自動存檔
+/* =========================================================
+   14) 自動存檔（修正 badge 狀態；更順）
+   ========================================================= */
 let autosaveTimer=null;
-function setAutosaveBadge(text, danger=false){
-  const b=document.getElementById('autosaveBadge'); b.textContent=text;
-  b.className = danger ? 'status-badge' : 'status-badge saving';
-  if(!danger) setTimeout(()=>b.className='status-badge', 1000);
-}
-function triggerAutosave(){
-  clearTimeout(autosaveTimer);
-  autosaveTimer=setTimeout(()=>{
-    const ta=document.getElementById('inputText');
-    localStorage.setItem('writer_draft_v1', ta.value);
-    setAutosaveBadge('已儲存');
-  }, 500);
+function setAutosaveBadge(text, mode='idle'){
+  const b=document.getElementById('autosaveBadge');
+  b.textContent = text;
+
+  b.classList.remove('saving','danger','ok');
+  if(mode==='saving') b.classList.add('saving');
+  if(mode==='danger') b.classList.add('danger');
+  if(mode==='ok') b.classList.add('ok');
 }
 
-// 初始化
+function triggerAutosave(){
+  clearTimeout(autosaveTimer);
+  setAutosaveBadge('儲存中…', 'saving');
+
+  const saveWork = () => {
+    try{
+      const ta=document.getElementById('inputText');
+      localStorage.setItem('writer_draft_v1', ta.value);
+      setAutosaveBadge('已儲存', 'ok');
+      setTimeout(()=>setAutosaveBadge('準備就緒', 'idle'), 900);
+    }catch(e){
+      setAutosaveBadge('儲存失敗', 'danger');
+    }
+  };
+
+  autosaveTimer=setTimeout(()=>{
+    if('requestIdleCallback' in window){
+      requestIdleCallback(saveWork, { timeout: 800 });
+    }else{
+      saveWork();
+    }
+  }, 450);
+}
+
+/* =========================================================
+   15) 初始化：OpenCC + CSV + 草稿 + 偵測事件
+   ========================================================= */
 window.addEventListener('load', async ()=>{
+  bindKeyboardOffset();
+
   await initOpenCC();
   await loadBibleCSV();
+
   const ta=document.getElementById('inputText');
   const saved=localStorage.getItem('writer_draft_v1');
-  if(saved){ ta.value=saved; setAutosaveBadge('草稿已恢復'); }
-  
+  if(saved){
+    ta.value=saved;
+    setAutosaveBadge('草稿已恢復', 'ok');
+    setTimeout(()=>setAutosaveBadge('準備就緒', 'idle'), 900);
+  }else{
+    setAutosaveBadge('準備就緒', 'idle');
+  }
+
+  // 输入：存檔 + 經文偵測（預覽不跑校稿，保持快）
   ta.addEventListener('input', ()=>{
     triggerAutosave();
-    // 預覽頁面不即時渲染，省效能，切換 tab 時才渲染
-    // 經文偵測保留
     clearTimeout(window.__verseDetectTimer);
     window.__verseDetectTimer=setTimeout(maybeDetectVerse, 220);
   });
-  
+
+  // 游標移動也能偵測（回頭補標點很有用）
   ta.addEventListener('keyup', (e)=>{
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
       clearTimeout(window.__verseDetectTimer);
@@ -632,11 +917,14 @@ window.addEventListener('load', async ()=>{
     }
   });
 
-  // 快捷鍵支援
+  // 快捷鍵：Esc 關浮窗；Alt+Enter 插入
   document.addEventListener('keydown', (e)=>{
     const popShown = document.getElementById('versePop').classList.contains('show');
     if(e.key==='Escape' && popShown) closeVersePop();
-    if(e.altKey && e.key==='Enter' && popShown){ e.preventDefault(); insertVerse(); }
+    if(e.altKey && e.key==='Enter' && popShown){
+      e.preventDefault();
+      insertVerse();
+    }
   });
 });
 </script>
