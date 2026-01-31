@@ -2,505 +2,456 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>經文校稿工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>經文校稿工具 Pro</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #d3d3d3; /* 灰色背景 */
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-radius: 12px;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+
+        body {
+            font-family: "Microsoft JhengHei", "PingFang TC", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
         .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 100px);
+            min-height: 600px;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
         }
-        .textarea-wrapper {
-            width: 48%;
-            box-sizing: border-box;
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #555;
         }
-        .input-wrapper, .output-wrapper {
+
+        /* 輸入與輸出區域樣式 */
+        textarea, .output-content {
             width: 100%;
-            min-height: 300px;
-            margin-bottom: 20px;
-            background-color: #f5f5f5; /* 灰底 */
-            padding: 10px;
-            box-sizing: border-box;
-            overflow: auto;
-            white-space: pre-wrap; /* 保留空白和換行 */
-        }
-        button {
-            padding: 10px 20px;
+            flex-grow: 1;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
             font-size: 16px;
+            box-sizing: border-box;
+            resize: none;
+            outline: none;
+            overflow-y: auto;
+            background-color: #fafafa;
+            white-space: pre-wrap;
+            font-family: inherit;
         }
-        .highlight {
-            background-color: yellow; /* 黃色高亮 */
+
+        textarea:focus {
+            border-color: var(--primary-color);
+            background-color: #fff;
         }
-        .typo-highlight {
-            background-color: lightblue; /* 淺藍色高亮 */
+
+        .output-content {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* 按鈕樣式 */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #357abd;
+        }
+
+        .btn-secondary {
+            background-color: #e0e0e0;
+            color: #555;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d0d0d0;
+        }
+
+        .btn-clear {
+            background-color: #ff6b6b;
+            color: white;
+        }
+
+        /* 高亮樣式 */
+        .highlight-scripture {
+            background-color: #d1e7dd; /* 經文：淡綠色 */
+            color: #0f5132;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .highlight-typo {
+            background-color: #f8d7da; /* 錯字：淡紅色 */
+            color: #842029;
+            text-decoration: line-through;
+            padding: 0 2px;
+            margin-right: 4px;
+        }
+
+        .highlight-correction {
+            background-color: #fff3cd; /* 修正後：淡黃色 */
+            color: #664d03;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 4px;
+            border-bottom: 2px solid #ffecb5;
+        }
+
+        /* 手機版響應式設計 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                grid-template-columns: 1fr; /* 改為單欄 */
+                height: auto;
+                min-height: auto;
+            }
+
+            .panel {
+                min-height: 350px; /* 手機版每個區塊的高度 */
+            }
         }
     </style>
 </head>
 <body>
 
-<h1>經文校稿工具</h1>
+<h1>📖 經文校稿工具</h1>
 
 <div class="container">
-    <div class="textarea-wrapper">
-        <h2>輸入文字</h2>
-        <div id="inputText" class="input-wrapper" contenteditable="true" placeholder="請在此輸入您的文章..."></div>
+    <div class="panel">
+        <div class="panel-header">
+            <h2>原始文章</h2>
+            <div class="btn-group">
+                <button class="btn-clear" onclick="clearText()">清空</button>
+            </div>
+        </div>
+        <textarea id="inputText" placeholder="請將文章貼在此處，將自動轉換錯別字與經文格式..."></textarea>
     </div>
-    <div class="textarea-wrapper">
-        <h2>校稿結果</h2>
-        <div id="output" class="output-wrapper"></div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2>校稿結果</h2>
+            <div class="btn-group">
+                <button class="btn-secondary" onclick="processText()">⟳ 重新整理</button>
+                <button class="btn-primary" onclick="copyResult()">📋 複製結果</button>
+            </div>
+        </div>
+        <div id="output" class="output-content"></div>
     </div>
 </div>
 
-<button onclick="processText()">校稿</button>
-
 <script>
-    // 定義書卷全名與縮寫的對應關係，包含常見縮寫
+    // --- 數據定義 ---
+    
+    // 書卷簡稱表
     const bookAbbreviations = {
-        '創世記': '創',
-        '創': '創',
-        '出埃及記': '出',
-        '出': '出',
-        '利未記': '利',
-        '利': '利',
-        '民數記': '民',
-        '民': '民',
-        '申命記': '申',
-        '申': '申',
-        '約書亞記': '書',
-        '書': '書',
-        '士師記': '士',
-        '士': '士',
-        '路得記': '得',
-        '得': '得',
-        '撒母耳記上': '撒上',
-        '撒上': '撒上',
-        '撒母耳記下': '撒下',
-        '撒下': '撒下',
-        '列王紀上': '王上',
-        '王上': '王上',
-        '列王紀下': '王下',
-        '王下': '王下',
-        '歷代志上': '代上',
-        '代上': '代上',
-        '歷代志下': '代下',
-        '代下': '代下',
-        '以斯拉記': '拉',
-        '拉': '拉',
-        '尼希米記': '尼',
-        '尼': '尼',
-        '以斯帖記': '斯',
-        '斯': '斯',
-        '約伯記': '伯',
-        '伯': '伯',
-        '詩篇': '詩',
-        '詩': '詩',
-        '箴言': '箴',
-        '箴': '箴',
-        '傳道書': '傳',
-        '傳': '傳',
-        '雅歌': '歌',
-        '歌': '歌',
-        '以賽亞書': '賽',
-        '賽': '賽',
-        '耶利米書': '耶',
-        '耶': '耶',
-        '耶利米哀歌': '哀',
-        '哀': '哀',
-        '以西結書': '結',
-        '結': '結',
-        '但以理書': '但',
-        '但': '但',
-        '何西阿書': '何',
-        '何': '何',
-        '約珥書': '珥',
-        '珥': '珥',
-        '阿摩司書': '摩',
-        '摩': '摩',
-        '俄巴底亞書': '俄',
-        '俄': '俄',
-        '約拿書': '拿',
-        '拿': '拿',
-        '彌迦書': '彌',
-        '彌': '彌',
-        '那鴻書': '鴻',
-        '鴻': '鴻',
-        '哈巴谷書': '哈',
-        '哈': '哈',
-        '西番雅書': '番',
-        '番': '番',
-        '哈該書': '該',
-        '該': '該',
-        '撒迦利亞書': '亞',
-        '亞': '亞',
-        '瑪拉基書': '瑪',
-        '瑪': '瑪',
-        '馬太福音': '太',
-        '馬太': '太',
-        '太': '太',
-        '馬可福音': '可',
-        '馬可': '可',
-        '可': '可',
-        '路加福音': '路',
-        '路加': '路',
-        '路': '路',
-        '約翰福音': '約',
-        '約翰': '約',
-        '約': '約',
-        '使徒行傳': '徒',
-        '徒': '徒',
-        '羅馬書': '羅',
-        '羅': '羅',
-        '哥林多前書': '林前',
-        '林前': '林前',
-        '哥林多後書': '林後',
-        '林後': '林後',
-        '加拉太書': '加',
-        '加': '加',
-        '以弗所書': '弗',
-        '弗': '弗',
-        '腓立比書': '腓',
-        '腓': '腓',
-        '歌羅西書': '西',
-        '西': '西',
-        '帖撒羅尼迦前書': '帖前',
-        '帖前': '帖前',
-        '帖撒羅尼迦後書': '帖後',
-        '帖後': '帖後',
-        '提摩太前書': '提前',
-        '提前': '提前',
-        '提摩太後書': '提後',
-        '提後': '提後',
-        '提多書': '多',
-        '多': '多',
-        '腓利門書': '門',
-        '門': '門',
-        '希伯來書': '來',
-        '來': '來',
-        '雅各書': '雅',
-        '雅': '雅',
-        '彼得前書': '彼前',
-        '彼前': '彼前',
-        '彼得後書': '彼後',
-        '彼後': '彼後',
-        '約翰一書': '約一',
-        '約一': '約一',
-        '約翰二書': '約二',
-        '約二': '約二',
-        '約翰三書': '約三',
-        '約三': '約三',
-        '猶大書': '猶',
-        '猶': '猶',
-        '啟示錄': '啟',
-        '啟': '啟',
-        // 添加其他書卷如有需要
+        '創世記': '創', '出埃及記': '出', '利未記': '利', '民數記': '民', '申命記': '申',
+        '約書亞記': '書', '士師記': '士', '路得記': '得', '撒母耳記上': '撒上', '撒母耳記下': '撒下',
+        '列王紀上': '王上', '列王紀下': '王下', '歷代志上': '代上', '歷代志下': '代下', '以斯拉記': '拉',
+        '尼希米記': '尼', '以斯帖記': '斯', '約伯記': '伯', '詩篇': '詩', '箴言': '箴',
+        '傳道書': '傳', '雅歌': '歌', '以賽亞書': '賽', '耶利米書': '耶', '耶利米哀歌': '哀',
+        '以西結書': '結', '但以理書': '但', '何西阿書': '何', '約珥書': '珥', '阿摩司書': '摩',
+        '俄巴底亞書': '俄', '約拿書': '拿', '彌迦書': '彌', '那鴻書': '鴻', '哈巴谷書': '哈',
+        '西番雅書': '番', '哈該書': '該', '撒迦利亞書': '亞', '瑪拉基書': '瑪',
+        '馬太福音': '太', '馬可福音': '可', '路加福音': '路', '約翰福音': '約', '使徒行傳': '徒',
+        '羅馬書': '羅', '哥林多前書': '林前', '哥林多後書': '林後', '加拉太書': '加', '以弗所書': '弗',
+        '腓立比書': '腓', '歌羅西書': '西', '帖撒羅尼迦前書': '帖前', '帖撒羅尼迦後書': '帖後', '提摩太前書': '提前',
+        '提摩太後書': '提後', '提多書': '多', '腓利門書': '門', '希伯來書': '來', '雅各書': '雅',
+        '彼得前書': '彼前', '彼得後書': '彼後', '約翰一書': '約一', '約翰二書': '約二', '約翰三書': '約三',
+        '猶大書': '猶', '啟示錄': '啟',
+        // 常見簡稱補充
+        '馬太': '太', '馬可': '可', '路加': '路', '約翰': '約'
     };
 
-    // 錯字和正確字的對應關係
+    // 錯別字修正表
     const typoCorrections = {
-        '安祥': '安詳',
-        '台灣': '臺灣',
-        '講台': '講臺',
-        '姊妹': '姐妹',
-        '裏面': '裡面',
-        '甚麼': '什麼',
-        '秘密': '祕密',
-        '奧秘': '奧祕',
-        '按步就班': '按部就班',
-        '不明究理': '不明就裡',
-        '淬練': '淬鍊',
-        '借機': '藉機',
-        '拼命': '拚命',
-        '煞那': '剎那',
-        '身份': '身分',
-        '熟捻': '熟稔',
-        '無所適事': '無所事事',
-        '撒馬利亞': '撒瑪利亞',
-        '做見證': '作見證',
-        '抵毀': '詆毀',
-        '服侍': '服事',
-        '模擬兩可': '模稜兩可',
-        '約旦河': '約但河',
-        '伸仗': '伸杖',
-        '撒旦': '撒但',
-        '生活無慮': '生活無虞',
-        '周六': '週六',
-        '眼臉': '眼瞼',
-        '部份': '部分',
-        '淺移默化': '潛移默化',
-        '佈滿': '布滿',
-        '繁延': '繁衍',
-        '公佈': '公布',
-        '頻臨': '瀕臨',
-        '佈置': '布置',
-        '札根': '扎根',
-        '扎營': '紮營',
-        '扎實': '紮實',
-        '秘訣': '祕訣',
-        '雨過天晴': '雨過天青',
-        '晴天霹靂': '青天霹靂',
-        '講國語': '講中文',
-        '臺語': '閩南語',
-        '背逆': '悖逆',
-        '必需': '必須',
-        '須要': '需要',
-        '漫延': '蔓延',
-        '綑綁': '捆綁',
-        '飢荒': '饑荒',
-        '警醒': '儆醒',
-        '夢靨': '夢魘',
-        '補風': '捕風',
-        '不技不求': '不忮不求',
-        '日漸好轉': '日見好轉',
-        '榻陷': '塌陷',
-        '規畫': '規劃',
-        '企畫': '企劃',
-        // 您可以在這裡添加更多的錯字對應
+        '安祥': '安詳', '台灣': '臺灣', '講台': '講臺', '姊妹': '姐妹', '裏面': '裡面',
+        '甚麼': '什麼', '秘密': '祕密', '奧秘': '奧祕', '按步就班': '按部就班', '不明究理': '不明就裡',
+        '淬練': '淬鍊', '借機': '藉機', '拼命': '拚命', '煞那': '剎那', '身份': '身分',
+        '熟捻': '熟稔', '無所適事': '無所事事', '撒馬利亞': '撒瑪利亞', '做見證': '作見證', '抵毀': '詆毀',
+        '服侍': '服事', '模擬兩可': '模稜兩可', '約旦河': '約但河', '伸仗': '伸杖', '撒旦': '撒但',
+        '生活無慮': '生活無虞', '周六': '週六', '眼臉': '眼瞼', '部份': '部分', '淺移默化': '潛移默化',
+        '佈滿': '布滿', '繁延': '繁衍', '公佈': '公布', '頻臨': '瀕臨', '佈置': '布置',
+        '札根': '扎根', '扎營': '紮營', '扎實': '紮實', '秘訣': '祕訣', '雨過天晴': '雨過天青',
+        '晴天霹靂': '青天霹靂', '講國語': '講中文', '臺語': '閩南語', '背逆': '悖逆', '必需': '必須',
+        '須要': '需要', '漫延': '蔓延', '綑綁': '捆綁', '飢荒': '饑荒', '警醒': '儆醒',
+        '夢靨': '夢魘', '補風': '捕風', '不技不求': '不忮不求', '日漸好轉': '日見好轉', '榻陷': '塌陷',
+        '規畫': '規劃', '企畫': '企劃'
     };
 
-    // 中文數字轉換為阿拉伯數字的函數
+    // --- 工具函數 ---
+
     function chineseToNumber(chineseNum) {
         const cnNums = {'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
-        const cnUnits = {'十':10,'百':100,'千':1000,'萬':10000,'億':100000000};
+        const cnUnits = {'十':10,'百':100,'千':1000,'萬':10000};
+        
+        // 簡單處理：如果是純阿拉伯數字字串
+        if (/^\d+$/.test(chineseNum)) return parseInt(chineseNum, 10);
 
         let total = 0;
         let section = 0;
         let number = 0;
+        let unitOps = false; // 是否剛操作過單位
 
         for(let i = 0; i < chineseNum.length; i++){
             const c = chineseNum.charAt(i);
             if(cnNums.hasOwnProperty(c)){
                 number = cnNums[c];
-            }else if(cnUnits.hasOwnProperty(c)){
+                unitOps = false;
+            } else if(cnUnits.hasOwnProperty(c)){
                 let unit = cnUnits[c];
-                if(unit === 10000 || unit === 100000000){
-                    section = (section + number) * unit;
+                // 處理 "十" 開頭的情況 (如：十二章 -> 12)
+                if (unit === 10 && number === 0 && !unitOps) number = 1;
+                
+                section = (section + number) * unit;
+                if (unit >= 10000) { // 萬以上進位
                     total += section;
                     section = 0;
-                }else{
-                    section += number * unit;
+                } else {
+                    total += section;
+                    section = 0; // 簡易版處理，這部分邏輯可以更嚴謹，但對於章節數字通常夠用
                 }
                 number = 0;
-            }else if(/\d/.test(c)){
-                number = parseInt(c, 10);
-            }else{
-                // 跳過未知字符
-                continue;
+                unitOps = true;
+            } else if(/\d/.test(c)){
+                 number = parseInt(c, 10);
             }
         }
-        return total + section + number;
+        // 處理 "一章" 這種情況，或者尾數
+        if (!unitOps) total += number; 
+        
+        // 特殊修正：如果在循環中邏輯累積錯誤，針對常見的「十幾」做保底
+        if (total === 0 && chineseNum.startsWith('十')) {
+            let temp = 10;
+            if (chineseNum.length > 1) temp += cnNums[chineseNum[1]] || 0;
+            return temp;
+        }
+
+        return total > 0 ? total : number;
     }
 
-    // 將阿拉伯數字轉換為中文數字的函數
     function numberToChinese(num) {
         const cnNums = ['零','一','二','三','四','五','六','七','八','九'];
-        const cnUnits = ['','十','百','千','萬','億'];
+        const cnUnits = ['','十','百','千'];
         let str = '';
         let numStr = num.toString();
         let len = numStr.length;
+        
+        // 簡單轉換，針對聖經章數通常不大
+        if (num === 0) return '零';
+        if (num === 10) return '十';
+        if (num > 10 && num < 20) {
+            return '十' + cnNums[num % 10];
+        }
+
         for(let i = 0; i < len; i++){
-            let n = numStr.charAt(len - i -1);
+            let n = parseInt(numStr.charAt(len - i -1));
             let digit = cnNums[n];
-            let unit = cnUnits[i % cnUnits.length];
-            if (digit === '零' && str.startsWith('零')) {
-                continue;
-            }
-            str = digit + unit + str;
-        }
-        // 處理多餘的零
-        str = str.replace(/零+/g, '零');
-        str = str.replace(/零$/, '');
-        str = str.replace(/^一十/, '十'); // 例如一十變成十
-        return str;
-    }
-
-    // 判斷是否為經文引用
-    function isScriptureReference(content) {
-        for (let fullName in bookAbbreviations) {
-            if (content.startsWith(fullName)) {
-                return true;
+            let unit = cnUnits[i];
+            
+            if (n !== 0) {
+                str = digit + unit + str;
+            } else if (str.length > 0 && !str.startsWith('零')) {
+                str = '零' + str;
             }
         }
-        return false;
+        return str.replace(/零+$/, '');
     }
 
-    // 分離章和節的函數，處理多種格式
-    function splitChapterAndVerse(content) {
-        const regex = /^([^\d零一二三四五六七八九十百千萬億章篇節：:.,-]*)?([零一二三四五六七八九十百千萬億\d]+)(?:章|篇)?[：:.,]?\s*([零一二三四五六七八九十百千萬億\d\-]*)(?:節)?/;
-        let match = content.match(regex);
-        if (match) {
-            return {
-                bookName: match[1] ? match[1] : '',
-                chapter: match[2],
-                verse: match[3],
-            };
-        }
-        return null;
-    }
+    // --- 主要邏輯 ---
 
     function processText() {
-        let inputDiv = document.getElementById('inputText');
-        let text = inputDiv.innerText || inputDiv.textContent;
+        const inputEl = document.getElementById('inputText');
+        const outputEl = document.getElementById('output');
+        let text = inputEl.value;
 
-        // 在輸出中，先進行錯字替換，並標記替換過的部分
-        let processedText = text;
+        if (!text) {
+            outputEl.innerHTML = '<span style="color:#999;">等待輸入...</span>';
+            return;
+        }
 
-        // 替換錯字並高亮正確的詞語
+        // 1. 處理錯別字 (並加上標記)
         for (let typo in typoCorrections) {
             let correction = typoCorrections[typo];
             let typoRegex = new RegExp(typo, 'g');
-            processedText = processedText.replace(typoRegex, function(matched) {
-                return `<span class="typo-highlight">${correction}</span>`;
-            });
+            text = text.replace(typoRegex, `<span class="highlight-typo">${typo}</span><span class="highlight-correction">${correction}</span>`);
         }
 
-        // 解析經文引用並高亮
-        processedText = processedText.replace(/（(.*?)）/g, function (match, content) {
-            let originalContent = content;
-            let bookName = '';
-            let chapter = '';
-            let verse = '';
+        // 2. 處理經文引用
+        // Regex 邏輯：尋找全形括號，且內容看似經文
+        text = text.replace(/（([^）]+)）/g, function (match, content) {
+            // 檢查是否包含書卷名
+            let foundBook = null;
+            let bookAbbr = '';
+            
+            // 先比對最長的書卷名，避免 "撒母耳記上" 被對應成 "撒" (如果有的話)
+            let sortedBooks = Object.keys(bookAbbreviations).sort((a, b) => b.length - a.length);
 
-            // 提取書卷名
-            for (let fullName in bookAbbreviations) {
-                if (content.startsWith(fullName)) {
-                    bookName = bookAbbreviations[fullName];
-                    content = content.substring(fullName.length);
+            for (let book of sortedBooks) {
+                if (content.startsWith(book)) {
+                    foundBook = book;
+                    bookAbbr = bookAbbreviations[book];
                     break;
                 }
             }
 
-            if (!bookName) {
-                return `（${originalContent}）`;
-            }
+            if (!foundBook) return match; // 不是經文，保持原樣
 
-            // 分離章和節
-            let splitResult = splitChapterAndVerse(content);
-            if (!splitResult) {
-                return `（${originalContent}）`;
-            }
+            let remain = content.substring(foundBook.length).trim();
+            
+            // 解析章節：支援 "12章34節", "十二章34", "12:34", "12.34"
+            // 移除 "章", "篇", "節", 空格
+            let cleanRef = remain.replace(/[章篇節\s]/g, ':');
+            // 將多餘的符號轉為單一分隔符
+            cleanRef = cleanRef.replace(/[:：.．]+/g, ':');
+            
+            let parts = cleanRef.split(':').filter(p => p);
+            
+            if (parts.length === 0) return match; // 只有書卷名?
 
-            chapter = splitResult.chapter;
-            verse = splitResult.verse;
+            let chapter = parts[0];
+            let verse = parts.length > 1 ? parts[1] : '';
 
-            // 如果經文引用已經是期望的格式，則不處理
-            let expectedFormat = `${bookName}${chapter}${verse ? verse : ''}`;
-            if (content === expectedFormat) {
-                return match; // 不做任何修改
-            }
+            // 處理章：轉為中文數字
+            let chapterNum = chineseToNumber(chapter);
+            let chapterChi = numberToChinese(chapterNum);
 
-            // 轉換章為中文數字（如果是阿拉伯數字）
-            let chapterChinese = '';
-            if (/^\d+$/.test(chapter)) {
-                chapterChinese = numberToChinese(parseInt(chapter, 10));
-            } else {
-                chapterChinese = chapter; // 保持原有的中文章數
-            }
-
-            // 節數保持為阿拉伯數字
-            let verseDisplay = '';
+            // 處理節：保持阿拉伯數字 (處理範圍如 1-3)
+            let verseStr = '';
             if (verse) {
-                if (verse.includes('-')) {
-                    let verses = verse.split('-');
-                    let verseStart = verses[0];
-                    let verseEnd = verses[1];
-                    // 將中文數字轉換為阿拉伯數字
-                    verseStart = /^\d+$/.test(verseStart) ? verseStart : chineseToNumber(verseStart).toString();
-                    verseEnd = /^\d+$/.test(verseEnd) ? verseEnd : chineseToNumber(verseEnd).toString();
-                    verseDisplay = `${verseStart}-${verseEnd}`;
+                // 如果節包含範圍 (如 一至三, 1-3)
+                if (verse.includes('-') || verse.includes('－') || verse.includes('至')) {
+                   let vParts = verse.split(/[-－至]/);
+                   let v1 = chineseToNumber(vParts[0]);
+                   let v2 = chineseToNumber(vParts[1]);
+                   verseStr = `${v1}-${v2}`;
                 } else {
-                    // 將中文數字轉換為阿拉伯數字
-                    verseDisplay = /^\d+$/.test(verse) ? verse : chineseToNumber(verse).toString();
+                   verseStr = chineseToNumber(verse).toString();
                 }
             }
 
-            // 組合新的經文引用
-            let newReference = `（${bookName}${chapterChinese}${verseDisplay}）`;
-
-            // 高亮處理
-            return `<span class="highlight">${newReference}</span>`;
+            let newRef = `（${bookAbbr}${chapterChi}${verseStr}）`;
+            return `<span class="highlight-scripture">${newRef}</span>`;
         });
 
-        // 更新輸出
-        document.getElementById('output').innerHTML = processedText;
+        // 將換行符號轉為 <br>
+        text = text.replace(/\n/g, '<br>');
 
-        // 在輸入區域，高亮錯字和經文引用
-        let highlightedInput = text;
+        outputEl.innerHTML = text;
+    }
 
-        // 高亮錯字
-        for (let typo in typoCorrections) {
-            let typoRegex = new RegExp(typo, 'g');
-            highlightedInput = highlightedInput.replace(typoRegex, function(matched) {
-                return `<span class="typo-highlight">${matched}</span>`;
-            });
+    // --- UI 互動 ---
+
+    function clearText() {
+        if(confirm('確定要清空所有內容嗎？')) {
+            document.getElementById('inputText').value = '';
+            document.getElementById('output').innerHTML = '';
         }
+    }
 
-        // 高亮經文引用
-        highlightedInput = highlightedInput.replace(/（(.*?)）/g, function (match, content) {
-            if (isScriptureReference(content)) {
-                return `<span class="highlight">${match}</span>`;
-            } else {
-                return match;
-            }
+    function copyResult() {
+        const outputEl = document.getElementById('output');
+        // 為了複製純文字（去除HTML標籤但保留換行），我們需要一個臨時處理
+        // 但用戶可能想要複製已經校正好的文字（不需要錯字標示）
+        
+        // 取得純文本內容邏輯：
+        // 1. 複製 innerText (會忽略掉 html tag)
+        // 但我們的 HTML 裡有 <span class="highlight-typo">錯字</span>，這不應該被複製進去
+        // 所以我們需要重新生成一個 "純淨版" 的文字
+        
+        let rawText = outputEl.innerText;
+        
+        // 更好的方法：直接從 HTML 中移除 .highlight-typo 元素，然後取 textContent
+        let tempDiv = document.createElement('div');
+        tempDiv.innerHTML = outputEl.innerHTML;
+        
+        // 移除所有錯字標記 (原本的錯字)
+        let typos = tempDiv.querySelectorAll('.highlight-typo');
+        typos.forEach(el => el.remove());
+        
+        // 經文和更正後的字，直接保留文字即可
+        let finalCopyText = tempDiv.innerText;
+
+        navigator.clipboard.writeText(finalCopyText).then(() => {
+            alert('內容已複製到剪貼簿！');
+        }).catch(err => {
+            console.error('複製失敗:', err);
+            alert('複製失敗，請手動複製。');
         });
-
-        // 更新輸入框
-        document.getElementById('inputText').innerHTML = highlightedInput;
-
-        // 自動調整高度
-        autoResize(document.getElementById('inputText'));
-        autoResize(document.getElementById('output'));
     }
 
-    // 自動調整框架高度
-    function autoResize(element) {
-        element.style.height = 'auto';
-        element.style.height = element.scrollHeight + 'px';
-    }
-
-    // 在輸入時高亮顯示錯字和經文
+    // 監聽輸入事件，實現即時預覽 (Debounce 避免過度頻繁)
+    let timeout = null;
     document.getElementById('inputText').addEventListener('input', function() {
-        let text = this.innerText || this.textContent;
-
-        // 高亮錯字
-        let highlightedInput = text;
-        for (let typo in typoCorrections) {
-            let typoRegex = new RegExp(typo, 'g');
-            highlightedInput = highlightedInput.replace(typoRegex, function(matched) {
-                return `<span class="typo-highlight">${matched}</span>`;
-            });
-        }
-
-        // 高亮經文引用
-        highlightedInput = highlightedInput.replace(/（(.*?)）/g, function (match, content) {
-            if (isScriptureReference(content)) {
-                return `<span class="highlight">${match}</span>`;
-            } else {
-                return match;
-            }
-        });
-
-        this.innerHTML = highlightedInput;
-
-        // 移動光標到最後
-        placeCaretAtEnd(this);
+        clearTimeout(timeout);
+        timeout = setTimeout(processText, 300); // 停止打字 0.3 秒後執行
     });
 
-    // 保持光標在內容最後
-    function placeCaretAtEnd(el) {
-        el.focus();
-        if (typeof window.getSelection != "undefined"
-                && typeof document.createRange != "undefined") {
-            let range = document.createRange();
-            range.selectNodeContents(el);
-            range.collapse(false);
-            let sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-        }
-    }
+    // 頁面加載後若有內容則處理一次
+    window.onload = processText;
+
 </script>
 
 </body>
