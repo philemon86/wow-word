@@ -3,241 +3,247 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>靈感寫手 Mobile (整合加強版)</title>
+  <title>靈感寫手 Mobile（手機主版）</title>
 
   <!-- OpenCC (開源 CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
 
   <style>
-    :root {
-      --primary: #007aff;
-      --bg: #f2f2f7;
-      --card-bg: #ffffff;
-      --text: #1c1c1e;
-      --border: #c6c6c8;
-      --warn: #ff9500;
-      --danger: #ff3b30;
-      --toolbar-height: 60px;
-      --kb-offset: 0px; /* 鍵盤彈起時向上位移 */
+    :root{
+      --primary:#007aff;
+      --bg:#f2f2f7;
+      --card-bg:#ffffff;
+      --text:#1c1c1e;
+      --border:#c6c6c8;
+      --danger:#ff3b30;
+
+      --toolbar-height: 118px; /* 兩排工具列高度 */
+      --kb-offset: 0px;
     }
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      margin: 0; background: var(--bg); color: var(--text);
-      display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      margin:0; background:var(--bg); color:var(--text);
+      display:flex; flex-direction:column; height:100vh; overflow:hidden;
     }
 
-    /* 1. 頂部導航 */
-    header {
-      background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
-      padding: 10px 16px; border-bottom: 0.5px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center; z-index: 100;
+    header{
+      background:rgba(255,255,255,0.95); backdrop-filter:blur(10px);
+      padding:10px 16px; border-bottom:0.5px solid var(--border);
+      display:flex; justify-content:space-between; align-items:center; z-index:100;
     }
-    .brand { font-size: 17px; font-weight: 800; }
-    .status-badge {
-      font-size: 11px; padding: 4px 8px; border-radius: 12px;
-      background: #e5e5ea; color: #8e8e93; transition: 0.2s;
-      font-weight: 700;
+    .brand{ font-size:17px; font-weight:900; }
+    .status-badge{
+      font-size:11px; padding:4px 8px; border-radius:12px;
+      background:#e5e5ea; color:#8e8e93; font-weight:800;
+      transition:0.2s;
+      max-width: 46vw;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     }
-    .status-badge.saving { background: var(--primary); color: white; }
-    .status-badge.danger { background: var(--danger); color: white; }
-    .status-badge.ok { background: #34c759; color: white; }
+    .status-badge.saving{ background:var(--primary); color:white; }
+    .status-badge.ok{ background:#34c759; color:white; }
+    .status-badge.danger{ background:var(--danger); color:white; }
 
-    /* 2. Tabs */
-    .tabs-nav {
-      display: flex; padding: 8px 16px 0; background: var(--bg); border-bottom: 1px solid var(--border);
+    .tabs-nav{
+      display:flex; padding:8px 16px 0; background:var(--bg); border-bottom:1px solid var(--border);
     }
-    .tab-btn {
-      flex: 1; padding: 10px; text-align: center; font-size: 15px; font-weight: 800;
-      color: #8e8e93; border-bottom: 3px solid transparent; transition: 0.2s; cursor: pointer;
-      user-select: none;
+    .tab-btn{
+      flex:1; padding:10px; text-align:center; font-size:15px; font-weight:900;
+      color:#8e8e93; border-bottom:3px solid transparent; transition:0.2s;
+      user-select:none; cursor:pointer;
     }
-    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn.active{ color:var(--primary); border-bottom-color:var(--primary); }
 
-    /* 3. 內容容器 */
-    .viewport { flex: 1; position: relative; overflow: hidden; background: var(--card-bg); }
-    .page {
-      position: absolute; inset: 0; display: none; flex-direction: column;
-      padding: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    .viewport{ flex:1; position:relative; overflow:hidden; background:var(--card-bg); }
+    .page{
+      position:absolute; inset:0; display:none; flex-direction:column;
+      padding:16px; overflow-y:auto; -webkit-overflow-scrolling:touch;
     }
-    .page.active { display: flex; }
+    .page.active{ display:flex; }
 
-    textarea {
-      flex: 1; width: 100%; border: none; outline: none; resize: none;
-      font-size: 18px; line-height: 1.65; padding-bottom: 90px;
-      font-family: inherit; background: transparent;
+    textarea{
+      flex:1; width:100%; border:none; outline:none; resize:none;
+      font-size:18px; line-height:1.65; padding-bottom: 96px;
+      font-family:inherit; background:transparent;
     }
 
-    /* 預覽區高亮 */
-    .highlight-scripture { background: #d1e7dd; color: #0f5132; padding: 0 2px; border-radius: 4px; font-weight: 800; }
-    .highlight-typo { text-decoration: line-through; color: #8e8e93; margin-right: 2px; }
-    .highlight-correction { background: #fff3cd; color: #b45309; font-weight: 900; padding: 0 4px; border-radius: 4px; }
+    /* 預覽高亮 */
+    .highlight-scripture{ background:#d1e7dd; color:#0f5132; padding:0 2px; border-radius:4px; font-weight:900; }
+    .highlight-typo{ text-decoration:line-through; color:#8e8e93; margin-right:2px; }
+    .highlight-correction{ background:#fff3cd; color:#b45309; font-weight:900; padding:0 4px; border-radius:4px; }
 
-    /* 4. 經文浮窗 */
-    .verse-pop {
-      position: fixed;
-      bottom: calc(var(--toolbar-height) + 20px + env(safe-area-inset-bottom) + var(--kb-offset));
-      left: 16px; right: 16px;
-      background: #1c1c1e; color: white; padding: 16px; border-radius: 16px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-      display: none; z-index: 200; transform: translateY(20px); opacity: 0;
-      transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* 經文浮窗（只有自動插入關閉才用） */
+    .verse-pop{
+      position:fixed;
+      bottom: calc(var(--toolbar-height) + 16px + env(safe-area-inset-bottom) + var(--kb-offset));
+      left:16px; right:16px;
+      background:#1c1c1e; color:white; padding:16px; border-radius:16px;
+      box-shadow:0 8px 30px rgba(0,0,0,0.4);
+      display:none; z-index:200; transform:translateY(20px); opacity:0;
+      transition:all 0.22s cubic-bezier(0.175,0.885,0.32,1.275);
     }
-    .verse-pop.show { display: block; transform: translateY(0); opacity: 1; }
-    .pop-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; gap: 10px; }
-    .pop-ref { color: #60a5fa; font-weight: 900; font-size: 16px; }
-    .pop-body { max-height: 120px; overflow-y: auto; font-size: 15px; opacity: 0.95; margin-bottom: 14px; line-height: 1.55; white-space: pre-wrap; }
-    .pop-actions { display: flex; gap: 10px; }
+    .verse-pop.show{ display:block; transform:translateY(0); opacity:1; }
+    .pop-header{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+    .pop-ref{ color:#60a5fa; font-weight:900; font-size:16px; }
+    .pop-body{ max-height:120px; overflow-y:auto; font-size:15px; opacity:0.95; margin-bottom:14px; line-height:1.55; white-space:pre-wrap; }
+    .pop-actions{ display:flex; gap:10px; }
 
-    /* 5. 底部工具列 (可滑動) */
-    .bottom-toolbar {
-      height: var(--toolbar-height);
-      padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
-      background: rgba(255,255,255,0.98); border-top: 0.5px solid var(--border);
-      display: flex; gap: 12px; overflow-x: auto; align-items: center;
-      scrollbar-width: none;
+    /* 兩排工具列 */
+    .bottom-toolbar{
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background:rgba(255,255,255,0.98);
+      border-top:0.5px solid var(--border);
+      display:flex; flex-direction:column; gap:10px;
     }
-    .bottom-toolbar::-webkit-scrollbar { display: none; }
-
-    .tool-btn {
-      padding: 8px 14px; border-radius: 10px; border: 1px solid #e5e5ea;
-      background: #f2f2f7; font-size: 13px; font-weight: 800; white-space: nowrap; flex-shrink: 0;
-      color: #333; user-select: none;
+    .tool-row{
+      display:flex; gap:10px; overflow-x:auto; align-items:center;
+      scrollbar-width:none;
     }
-    .tool-btn:active { background: #e5e5ea; transform: scale(0.96); }
-    .btn-main { background: var(--primary); color: white; border: none; }
-    .btn-danger { color: var(--danger); background: #fff5f5; border-color: #fee2e2; }
+    .tool-row::-webkit-scrollbar{ display:none; }
 
-    .toggle-group { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; white-space: nowrap; user-select: none; }
-    .toggle-group input { transform: translateY(1px); }
-    .sep { width: 1px; height: 20px; background: #ddd; flex-shrink: 0; }
+    .tool-btn{
+      padding:10px 14px; border-radius:12px; border:1px solid #e5e5ea;
+      background:#f2f2f7; font-size:13px; font-weight:900; white-space:nowrap; flex-shrink:0;
+      color:#333; user-select:none;
+    }
+    .tool-btn:active{ background:#e5e5ea; transform:scale(0.97); }
+    .btn-main{ background:var(--primary); color:white; border:none; }
+    .btn-danger{ color:var(--danger); background:#fff5f5; border-color:#fee2e2; }
+
+    .toggle-group{ display:flex; align-items:center; gap:6px; font-size:12px; color:#666; white-space:nowrap; user-select:none; }
+    .toggle-group input{ transform:translateY(1px); }
+    .sep{ width:1px; height:20px; background:#ddd; flex-shrink:0; }
   </style>
 </head>
 
 <body>
 
-  <header>
-    <div class="brand">✍️ 靈感寫手</div>
-    <div id="autosaveBadge" class="status-badge">載入中...</div>
-  </header>
+<header>
+  <div class="brand">✍️ 靈感寫手</div>
+  <div id="autosaveBadge" class="status-badge">載入中...</div>
+</header>
 
-  <div class="tabs-nav">
-    <div class="tab-btn active" onclick="switchTab('edit')">編輯寫作</div>
-    <div class="tab-btn" onclick="switchTab('preview')">校稿預覽</div>
-  </div>
+<div class="tabs-nav">
+  <div class="tab-btn active" onclick="switchTab('edit')">編輯寫作</div>
+  <div class="tab-btn" onclick="switchTab('preview')">校稿預覽</div>
+</div>
 
-  <div class="viewport">
-    <div id="page-edit" class="page active">
-      <textarea id="inputText" placeholder="在這裡寫作... 輸入「太1.1」「伯7.3-8.1」會自動偵測經文（支援尾巴標點）"></textarea>
+<div class="viewport">
+  <div id="page-edit" class="page active">
+    <textarea id="inputText" placeholder="在這裡寫作... 例如：太1.1（按空白/Enter/標點會自動插入）"></textarea>
 
-      <div id="versePop" class="verse-pop">
-        <div class="pop-header">
-          <span id="versePopRef" class="pop-ref"></span>
-          <span style="font-size:12px; color:#aaa;">偵測到經文</span>
-        </div>
-        <div id="versePopText" class="pop-body"></div>
-        <div class="pop-actions">
-          <button class="tool-btn btn-main" style="flex:2" onclick="insertVerse()">插入</button>
-          <button class="tool-btn" style="flex:1" onclick="closeVersePop()">關閉</button>
-        </div>
+    <div id="versePop" class="verse-pop">
+      <div class="pop-header">
+        <span id="versePopRef" class="pop-ref"></span>
+        <span style="font-size:12px;color:#aaa;">偵測到經文</span>
+      </div>
+      <div id="versePopText" class="pop-body"></div>
+      <div class="pop-actions">
+        <button class="tool-btn btn-main" style="flex:2" onclick="insertVerse()">插入</button>
+        <button class="tool-btn" style="flex:1" onclick="closeVersePop()">關閉</button>
       </div>
     </div>
-
-    <div id="page-preview" class="page">
-      <div id="output" style="line-height: 1.85; font-size: 18px;"></div>
-    </div>
   </div>
 
-  <div class="bottom-toolbar">
+  <div id="page-preview" class="page">
+    <div id="output" style="line-height:1.85;font-size:18px;"></div>
+  </div>
+</div>
+
+<div class="bottom-toolbar">
+  <!-- 第一排：你要「看得到」的核心功能 -->
+  <div class="tool-row">
     <button class="tool-btn btn-main" onclick="applyFixesToInput()">🪄 一鍵修正</button>
     <button class="tool-btn" onclick="toTraditional()">繁體</button>
     <button class="tool-btn" onclick="toSimplified()">簡體</button>
+    <button class="tool-btn" onclick="halfToFull()">半→全</button>
+  </div>
+
+  <!-- 第二排：寫作工具 + 開關 -->
+  <div class="tool-row">
     <button class="tool-btn" onclick="copyInput()">📝 複製輸入</button>
     <button class="tool-btn" onclick="copyResult()">📋 複製預覽</button>
 
-    <div class="sep"></div>
+    <span class="sep"></span>
     <label class="toggle-group"><input type="checkbox" id="autoVerseToggle" checked> 經文</label>
+    <label class="toggle-group"><input type="checkbox" id="autoInsertToggle" checked> 自動插入</label>
     <label class="toggle-group"><input type="checkbox" id="replaceRefToggle" checked> 取代</label>
     <label class="toggle-group"><input type="checkbox" id="allowChapterToggle"> 整章</label>
-    <div class="sep"></div>
 
+    <span class="sep"></span>
     <button class="tool-btn btn-danger" onclick="clearText()">清空</button>
   </div>
+</div>
 
 <script>
-/* =========================================================
-   0) 小工具：剪貼簿（iOS/瀏覽器權限 fallback）
-   ========================================================= */
-async function safeClipboardWrite(text) {
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
+/* ===============================
+   0) 工具：更穩的剪貼簿
+   =============================== */
+async function safeClipboardWrite(text){
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
       await navigator.clipboard.writeText(text);
       return true;
     }
-  } catch (e) {}
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.position = 'fixed';
-    ta.style.top = '-9999px';
-    ta.style.opacity = '0';
+  }catch(e){}
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.setAttribute('readonly','');
+    ta.style.position='fixed';
+    ta.style.top='-9999px';
+    ta.style.opacity='0';
     document.body.appendChild(ta);
     ta.select();
-    const ok = document.execCommand('copy');
+    const ok=document.execCommand('copy');
     document.body.removeChild(ta);
     return !!ok;
-  } catch (e) {
+  }catch(e){
     return false;
   }
 }
 
-/* =========================================================
-   1) UI 控制：Tabs（你原本的，保留）
-   ========================================================= */
-let currentTab = 'edit';
-function switchTab(tabName) {
-  currentTab = tabName;
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+/* ===============================
+   1) Tabs
+   =============================== */
+let currentTab='edit';
+function switchTab(tabName){
+  currentTab=tabName;
+  document.querySelectorAll('.tab-btn').forEach(btn=>btn.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(page=>page.classList.remove('active'));
 
-  if(tabName === 'edit') {
+  if(tabName==='edit'){
     document.querySelectorAll('.tab-btn')[0].classList.add('active');
     document.getElementById('page-edit').classList.add('active');
-  } else {
+  }else{
     document.querySelectorAll('.tab-btn')[1].classList.add('active');
     document.getElementById('page-preview').classList.add('active');
-    processText(); // 預覽時才運算
+    processText();
   }
 }
 
-/* =========================================================
-   2) 鍵盤上移：讓 verse toast 不被 iOS 鍵盤蓋住
-   ========================================================= */
-function bindKeyboardOffset() {
-  if (!window.visualViewport) return;
-  const vv = window.visualViewport;
-  const update = () => {
-    // 估算鍵盤高度（視覺視口縮小造成的差）
-    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    document.documentElement.style.setProperty('--kb-offset', kb + 'px');
+/* ===============================
+   2) iOS 鍵盤位移（浮窗不被蓋）
+   =============================== */
+function bindKeyboardOffset(){
+  if(!window.visualViewport) return;
+  const vv=window.visualViewport;
+  const update=()=>{
+    const kb=Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty('--kb-offset', kb+'px');
   };
   vv.addEventListener('resize', update);
   vv.addEventListener('scroll', update);
   update();
 }
 
-/* =========================================================
-   3) 錯別字與規則庫（保留 + 可擴充）
-   ========================================================= */
-const hardRules = [
-  ['上帝', '神'],
-  ['台', '臺'],
-];
-
-const typoCorrections = {
+/* ===============================
+   3) 規則/錯字庫
+   =============================== */
+const hardRules=[ ['上帝','神'], ['台','臺'] ];
+const typoCorrections={
   '安祥':'安詳','台灣':'臺灣','講台':'講臺','姊妹':'姐妹','裏面':'裡面',
   '甚麼':'什麼','秘密':'祕密','奧秘':'奧祕','按步就班':'按部就班','不明究理':'不明就裡',
   '淬練':'淬鍊','借機':'藉機','拼命':'拚命','煞那':'剎那','身份':'身分',
@@ -252,10 +258,7 @@ const typoCorrections = {
   '規畫':'規劃','企畫':'企劃'
 };
 
-/* =========================================================
-   4) 經文簡稱（你原本校稿高亮用，保留）
-   ========================================================= */
-const bookAbbreviations = {
+const bookAbbreviations={
   '創世記':'創','出埃及記':'出','利未記':'利','民數記':'民','申命記':'申',
   '約書亞記':'書','士師記':'士','路得記':'得','撒母耳記上':'撒上','撒母耳記下':'撒下',
   '列王紀上':'王上','列王紀下':'王下','歷代志上':'代上','歷代志下':'代下','以斯拉記':'拉',
@@ -273,10 +276,10 @@ const bookAbbreviations = {
   '馬太':'太','馬可':'可','路加':'路','約翰':'約'
 };
 
-/* =========================================================
-   5) Book Map（用於 bible.csv 檢索）
-   ========================================================= */
-const bookMap = {
+/* ===============================
+   4) BookMap（bible.csv 檢索）
+   =============================== */
+const bookMap={
   '創':'Gen','創世':'Gen','創世記':'Gen',
   '出':'Exo','出埃及':'Exo','出埃及記':'Exo',
   '利':'Lev','利未':'Lev','利未記':'Lev',
@@ -346,9 +349,9 @@ const bookMap = {
 };
 const sortedBookNames = Object.keys(bookMap).sort((a,b)=>b.length-a.length);
 
-/* =========================================================
-   6) 章數轉中文（保留）
-   ========================================================= */
+/* ===============================
+   5) 章數轉換
+   =============================== */
 function chineseToNumber(chineseNum){
   const cnNums={'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
   const cnUnits={'十':10,'百':100,'千':1000,'萬':10000};
@@ -367,16 +370,14 @@ function chineseToNumber(chineseNum){
   }
   if(!unitOps) total+=number;
   if(total===0 && chineseNum.startsWith('十')){
-    let temp=10;
-    if(chineseNum.length>1) temp+=cnNums[chineseNum[1]]||0;
-    return temp;
+    let temp=10; if(chineseNum.length>1) temp+=cnNums[chineseNum[1]]||0; return temp;
   }
   return total>0?total:number;
 }
 function numberToChinese(num){
   const cnNums=['零','一','二','三','四','五','六','七','八','九'];
   const cnUnits=['','十','百','千'];
-  num = parseInt(num,10);
+  num=parseInt(num,10);
   if(num===0) return '零';
   if(num===10) return '十';
   if(num>10 && num<20) return '十'+cnNums[num%10];
@@ -390,15 +391,11 @@ function numberToChinese(num){
   return str.replace(/零+$/,'');
 }
 
-/* =========================================================
-   7) Bible CSV 載入 + Worker（保留）
-   ========================================================= */
-let bibleData=[];
-let bibleReady=false;
-
+/* ===============================
+   6) OpenCC
+   =============================== */
 let openccReady=false;
 let t2s=null, s2t=null;
-
 async function initOpenCC(){
   try{
     t2s = OpenCC.Converter({ from:'tw', to:'cn' });
@@ -409,6 +406,12 @@ async function initOpenCC(){
     console.warn('OpenCC init fail', e);
   }
 }
+
+/* ===============================
+   7) CSV 載入（worker）
+   =============================== */
+let bibleData=[];
+let bibleReady=false;
 
 function parseCSVInWorker(csvText){
   return new Promise((resolve)=>{
@@ -445,33 +448,31 @@ function parseCSVInWorker(csvText){
 
 async function loadBibleCSV(){
   try{
-    setAutosaveBadge('載入 bible.csv…', 'saving');
+    setAutosaveBadge('載入 bible.csv…','saving');
     const res = await fetch(`./bible.csv?v=${Date.now()}`, { cache:'no-store' });
     if(!res.ok) throw new Error('HTTP '+res.status);
     const text=(await res.text()).replace(/^\uFEFF/,'');
     await parseCSVInWorker(text);
     bibleReady=true;
-    setAutosaveBadge('CSV OK', 'ok');
-    setTimeout(()=>setAutosaveBadge('準備就緒', 'idle'), 900);
+    setAutosaveBadge('準備就緒','ok');
+    setTimeout(()=>setAutosaveBadge('準備就緒','idle'), 800);
   }catch(e){
     bibleReady=false;
-    setAutosaveBadge('CSV 失敗', 'danger');
+    setAutosaveBadge('CSV 失敗（缺 bible.csv）','danger');
   }
 }
 
-/* =========================================================
-   8) 經文引用解析（保留 + 強化：標點剝除）
-   ========================================================= */
+/* ===============================
+   8) 經文解析
+   =============================== */
 function cnToNum(str){
   const val = chineseToNumber(str);
   return isNaN(val) ? null : val;
 }
-
 function parseRefPart(str, defaultBook, defaultChapter){
   let bookKey=defaultBook;
   let remain=str;
   let hasBookInStr=false;
-
   for(const key of sortedBookNames){
     if(str.startsWith(key)){
       bookKey=bookMap[key];
@@ -480,17 +481,13 @@ function parseRefPart(str, defaultBook, defaultChapter){
       break;
     }
   }
-
   remain=remain.replace(/[.．。,，]/g,':');
   let c,v, splitIdx=-1;
-
   const isDigit=(ch)=>/[0-9]/.test(ch);
   const isCnDigit=(ch)=>/[一二三四五六七八九十百]/.test(ch);
-
   for(let i=0;i<remain.length-1;i++){
     if(isCnDigit(remain[i]) && isDigit(remain[i+1])){ splitIdx=i+1; break; }
   }
-
   if(remain.includes(':')){
     const p=remain.split(':');
     c = cnToNum(p[0]) || parseInt(p[0]);
@@ -503,35 +500,23 @@ function parseRefPart(str, defaultBook, defaultChapter){
     if(defaultChapter && !hasBookInStr){ c=defaultChapter; v=val; }
     else { c=val; v=null; }
   }
-
-  return { book: bookKey, chapter: c, verse: v, id: (c && v) ? (c*1000+v) : null, isChapterOnly: (c && !v) };
+  return { book:bookKey, chapter:c, verse:v, id:(c&&v)?(c*1000+v):null, isChapterOnly:(c && !v) };
 }
-
 function parseSearchQuery(input){
   let clean=input.replace(/\s+/g,'')
                  .replace(/[.．。,，]/g,':')
                  .replace(/[—~～]/g,'-');
-
-  // 中文數字 + 阿拉伯數字交界（太一1）
   clean=clean.replace(/([一二三四五六七八九十百])(\d)/g,'$1:$2');
-
   if(clean.includes('-')){
     const [startStr,endStr]=clean.split('-');
     const startObj=parseRefPart(startStr,null,null);
     if(!startObj.chapter) return null;
-
     const contextChap = startObj.verse ? startObj.chapter : null;
     const endObj=parseRefPart(endStr,startObj.book,contextChap);
     if(!endObj.book) endObj.book=startObj.book;
-
     let startId=startObj.id;
-    let endId=0;
-
-    if(endObj.verse) endId=endObj.chapter*1000+endObj.verse;
-    else endId=endObj.chapter*1000+999;
-
+    let endId=endObj.verse ? (endObj.chapter*1000+endObj.verse) : (endObj.chapter*1000+999);
     if(startObj.isChapterOnly) startId=startObj.chapter*1000;
-
     return { type:'range', book:startObj.book, startId, endId };
   }else{
     const obj=parseRefPart(clean,null,null);
@@ -539,9 +524,9 @@ function parseSearchQuery(input){
   }
 }
 
-/* =========================================================
-   9) 查找與插入
-   ========================================================= */
+/* ===============================
+   9) 查找與格式化
+   =============================== */
 function bookCodeToShort(bookCode){
   const keys = Object.keys(bookMap).filter(k=>bookMap[k]===bookCode);
   if(!keys.length) return bookCode;
@@ -572,105 +557,97 @@ function buildInsertText(verses){
   return verses.map(e=>`${e.text} ${formatRefShort(e.book, e.chapter, e.verse)}`).join('\n');
 }
 
-/* =========================================================
-   10) 偵測邏輯（強化版：支援尾巴標點 / 括號）
-   ========================================================= */
-let lastDetected = null;
+/* ===============================
+   10) 經文偵測 + 自動插入
+   =============================== */
+let lastDetected=null;
+let isAutoInserting=false;
 
 function getLastTokenNearCursor(text, cursor){
-  // 以「空白/換行」為界，取游標附近 token
   let i = cursor - 1;
   while(i>=0 && !/\s/.test(text[i])) i--;
   const start=i+1;
-
   let j = cursor;
   while(j<text.length && !/\s/.test(text[j])) j++;
   const end=j;
-
   return { token:text.slice(start,end), start, end };
 }
-
-// 去掉 token 前後常見標點（但保留 : - . 這些會用在經文）
 function cleanToken(raw){
   if(!raw) return '';
-  let s = raw.trim();
-
-  // 先剝掉括號與書名號等包裹
-  s = s.replace(/^[\(\（\[\{「『【《<]+/g, '');
-  s = s.replace(/[\)\）\]\}」』】》>]+$/g, '');
-
-  // 再剝掉尾巴句讀（常見：。 ， 、 ！ ？ ； ：）
-  s = s.replace(/[，。、；;!！?？]+$/g, '');
-
-  // 若還有引號結尾
-  s = s.replace(/[”’"'」』]+$/g, '');
-
+  let s=raw.trim();
+  s=s.replace(/^[\(\（\[\{「『【《<]+/g,'');
+  s=s.replace(/[\)\）\]\}」』】》>]+$/g,'');
+  s=s.replace(/[，。、；;!！?？]+$/g,'');
+  s=s.replace(/[”’"'」』]+$/g,'');
   return s.trim();
 }
+function isCommitChar(ch){
+  return /[\s\n]/.test(ch) || /[，。、；;!！?？]/.test(ch);
+}
 
-function maybeDetectVerse(){
-  const autoOn = document.getElementById('autoVerseToggle').checked;
-  if(!autoOn) return;
+function maybeDetectVerse(commitMode=false){
+  const autoOn=document.getElementById('autoVerseToggle').checked;
+  if(!autoOn || isAutoInserting) return;
 
-  const ta = document.getElementById('inputText');
-  const text = ta.value;
-  const cursor = ta.selectionStart;
+  const ta=document.getElementById('inputText');
+  const text=ta.value;
+  const cursor=ta.selectionStart;
 
   const { token, start, end } = getLastTokenNearCursor(text, cursor);
   const cleaned = cleanToken(token);
+  if(!cleaned || cleaned.length<2){ closeVersePop(); return; }
 
-  if(!cleaned || cleaned.length < 2){
-    closeVersePop();
-    return;
-  }
+  const q=parseSearchQuery(cleaned);
+  if(!q){ closeVersePop(); return; }
 
-  const q = parseSearchQuery(cleaned);
-  if(!q){
-    closeVersePop();
-    return;
-  }
-
-  // 允許整章浮窗？（預設關，避免你打「創1」就噴）
-  const allowChapter = document.getElementById('allowChapterToggle').checked;
+  const allowChapter=document.getElementById('allowChapterToggle').checked;
   if(q.type==='single' && (q.verse===null || q.verse===undefined) && !allowChapter){
-    closeVersePop();
+    closeVersePop(); return;
+  }
+
+  const verses=findVersesByQuery(q).slice(0, 30);
+  if(!verses.length){ closeVersePop(); return; }
+
+  const insertText=buildInsertText(verses);
+  lastDetected={ token, cleaned, start, end, verses, insertText };
+
+  const autoInsert=document.getElementById('autoInsertToggle').checked;
+  if(autoInsert && commitMode){
+    autoInsertNow();
     return;
   }
 
-  // 預覽最多 30 節（整章也切 30，避免 toast 爆）
-  const verses = findVersesByQuery(q).slice(0, 30);
-  if(!verses.length){
-    closeVersePop();
-    return;
-  }
-
-  const insertText = buildInsertText(verses);
-  lastDetected = { token, cleaned, start, end, verses, insertText };
-
-  const pop = document.getElementById('versePop');
-  const refEl = document.getElementById('versePopRef');
-  const txtEl = document.getElementById('versePopText');
-
-  const first = verses[0];
+  // 自動插入關閉時才顯示浮窗
+  const pop=document.getElementById('versePop');
+  const refEl=document.getElementById('versePopRef');
+  const txtEl=document.getElementById('versePopText');
+  const first=verses[0];
   refEl.textContent = formatRefShort(first.book, first.chapter, first.verse);
   txtEl.textContent = insertText;
   pop.classList.add('show');
 }
 
+function autoInsertNow(){
+  if(!lastDetected) return;
+  isAutoInserting=true;
+  insertVerse();
+  isAutoInserting=false;
+  setAutosaveBadge('已自動插入經文','ok');
+  setTimeout(()=>setAutosaveBadge('準備就緒','idle'), 800);
+}
+
 function closeVersePop(){
   document.getElementById('versePop').classList.remove('show');
-  lastDetected = null;
+  lastDetected=null;
 }
 
 function insertVerse(){
   if(!lastDetected) return;
 
-  const ta = document.getElementById('inputText');
-  const replaceOn = document.getElementById('replaceRefToggle').checked;
+  const ta=document.getElementById('inputText');
+  const replaceOn=document.getElementById('replaceRefToggle').checked;
 
   const insertText = lastDetected.insertText;
-
-  // 取代時：用 token 的 start/end；不取代：用當下選取
   const before = ta.value.slice(0, replaceOn ? lastDetected.start : ta.selectionStart);
   const after  = ta.value.slice(replaceOn ? lastDetected.end : ta.selectionEnd);
 
@@ -682,68 +659,52 @@ function insertVerse(){
 
   closeVersePop();
   triggerAutosave();
-  if(currentTab === 'preview') processText();
+  if(currentTab==='preview') processText();
 }
 
-/* =========================================================
-   11) 校稿：預覽 + 一鍵套用（保留你的邏輯 + 安全 escape）
-   ========================================================= */
+/* ===============================
+   11) 校稿預覽 + 一鍵修正
+   =============================== */
 function applyHardRulesPlain(text){
-  for(const [from,to] of hardRules){
-    text = text.split(from).join(to);
-  }
+  for(const [from,to] of hardRules){ text=text.split(from).join(to); }
   return text;
 }
 function applyTyposPlain(text){
-  const keys = Object.keys(typoCorrections).sort((a,b)=>b.length-a.length);
-  for(const k of keys){
-    text = text.split(k).join(typoCorrections[k]);
-  }
+  const keys=Object.keys(typoCorrections).sort((a,b)=>b.length-a.length);
+  for(const k of keys){ text=text.split(k).join(typoCorrections[k]); }
   return text;
 }
 function getCleanFixedText(text){
-  text = applyHardRulesPlain(text);
-  text = applyTyposPlain(text);
+  text=applyHardRulesPlain(text);
+  text=applyTyposPlain(text);
   return text;
 }
 function escapeHtml(s){
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 function processText(){
   const inputEl=document.getElementById('inputText');
   const outputEl=document.getElementById('output');
   let text=inputEl.value;
+  if(!text){ outputEl.innerHTML='<span style="color:#999;">等待輸入...</span>'; return; }
 
-  if(!text){
-    outputEl.innerHTML='<span style="color:#999;">等待輸入...</span>';
-    return;
-  }
+  let preview=escapeHtml(text);
 
-  let preview = escapeHtml(text);
-
-  // 硬規則標示
   for(const [from,to] of hardRules){
-    const re=new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g');
-    preview = preview.replace(re, `<span class="highlight-typo">${from}</span><span class="highlight-correction">${to}</span>`);
+    const re=new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g');
+    preview=preview.replace(re, `<span class="highlight-typo">${from}</span><span class="highlight-correction">${to}</span>`);
   }
-
-  // 錯別字標示
   for(let typo in typoCorrections){
     const correction=typoCorrections[typo];
-    const re=new RegExp(typo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g');
+    const re=new RegExp(typo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g');
     preview=preview.replace(re, `<span class="highlight-typo">${typo}</span><span class="highlight-correction">${correction}</span>`);
   }
 
-  // 經文引用高亮（你原本：括號內）
   preview = preview.replace(/（([^）]+)）/g, function(match, content){
     let foundBook=null, bookAbbr='';
     let sortedBooks=Object.keys(bookAbbreviations).sort((a,b)=>b.length-a.length);
     for(let book of sortedBooks){
-      if(content.startsWith(book)){
-        foundBook=book;
-        bookAbbr=bookAbbreviations[book];
-        break;
-      }
+      if(content.startsWith(book)){ foundBook=book; bookAbbr=bookAbbreviations[book]; break; }
     }
     if(!foundBook) return match;
 
@@ -773,119 +734,115 @@ function processText(){
     return `<span class="highlight-scripture">${newRef}</span>`;
   });
 
-  preview = preview.replace(/\n/g,'<br>');
+  preview=preview.replace(/\n/g,'<br>');
   outputEl.innerHTML=preview;
 }
 
 function applyFixesToInput(){
   const ta=document.getElementById('inputText');
-  ta.value = getCleanFixedText(ta.value);
+  ta.value=getCleanFixedText(ta.value);
   triggerAutosave();
-  if(currentTab === 'preview') processText();
+  if(currentTab==='preview') processText();
   alert('已完成一鍵修正');
 }
 
-/* =========================================================
-   12) OpenCC 轉換（保留）
-   ========================================================= */
+/* ===============================
+   12) 繁簡（你要看得到 + 可用）
+   =============================== */
 function toSimplified(){
-  if(!openccReady){
-    alert('OpenCC 載入中...（可能網路慢）');
-    return;
-  }
+  if(!openccReady){ alert('繁簡轉換載入中…（OpenCC CDN）'); return; }
   const ta=document.getElementById('inputText');
   let out=t2s(ta.value);
   out=getCleanFixedText(out);
   ta.value=out;
   triggerAutosave();
-  if(currentTab === 'preview') processText();
+  if(currentTab==='preview') processText();
 }
 function toTraditional(){
-  if(!openccReady){
-    alert('OpenCC 載入中...（可能網路慢）');
-    return;
-  }
+  if(!openccReady){ alert('繁簡轉換載入中…（OpenCC CDN）'); return; }
   const ta=document.getElementById('inputText');
   let out=s2t(ta.value);
   out=getCleanFixedText(out);
   ta.value=out;
   triggerAutosave();
-  if(currentTab === 'preview') processText();
+  if(currentTab==='preview') processText();
 }
 
-/* =========================================================
-   13) 複製 / 清空
-   ========================================================= */
+/* ===============================
+   13) 半形 → 全形（你要的一鍵）
+   =============================== */
+function halfToFull(){
+  const ta=document.getElementById('inputText');
+  const s=ta.value;
+  let out='';
+  for(let i=0;i<s.length;i++){
+    const ch=s.charCodeAt(i);
+    if(ch===0x20){ out+='\u3000'; continue; }                 // 半形空白 -> 全形空白
+    if(ch>=0x21 && ch<=0x7E){ out+=String.fromCharCode(ch+0xFEE0); continue; } // ASCII -> 全形
+    out+=s[i];
+  }
+  ta.value=out;
+  triggerAutosave();
+  if(currentTab==='preview') processText();
+}
+
+/* ===============================
+   14) 複製/清空
+   =============================== */
 async function copyInput(){
   const ta=document.getElementById('inputText');
-  const ok = await safeClipboardWrite(ta.value);
+  const ok=await safeClipboardWrite(ta.value);
   alert(ok ? '寫作內容已複製' : '複製失敗（瀏覽器權限）');
 }
-
 async function copyResult(){
   const outputEl=document.getElementById('output');
-  let tempDiv=document.createElement('div');
-  tempDiv.innerHTML=outputEl.innerHTML;
-
-  // 移除錯字原文，只留更正後
-  tempDiv.querySelectorAll('.highlight-typo').forEach(el=>el.remove());
-  const finalCopyText = tempDiv.innerText;
-
-  const ok = await safeClipboardWrite(finalCopyText);
+  let temp=document.createElement('div');
+  temp.innerHTML=outputEl.innerHTML;
+  temp.querySelectorAll('.highlight-typo').forEach(el=>el.remove());
+  const text=temp.innerText;
+  const ok=await safeClipboardWrite(text);
   alert(ok ? '校稿結果已複製' : '複製失敗（瀏覽器權限）');
 }
-
 function clearText(){
   if(confirm('確定清空？')){
     document.getElementById('inputText').value='';
     document.getElementById('output').innerHTML='';
     localStorage.removeItem('writer_draft_v1');
     closeVersePop();
-    setAutosaveBadge('已清空', 'danger');
+    setAutosaveBadge('已清空','danger');
   }
 }
 
-/* =========================================================
-   14) 自動存檔（修正 badge 狀態；更順）
-   ========================================================= */
+/* ===============================
+   15) 自動存檔
+   =============================== */
 let autosaveTimer=null;
 function setAutosaveBadge(text, mode='idle'){
   const b=document.getElementById('autosaveBadge');
-  b.textContent = text;
-
-  b.classList.remove('saving','danger','ok');
+  b.textContent=text;
+  b.classList.remove('saving','ok','danger');
   if(mode==='saving') b.classList.add('saving');
-  if(mode==='danger') b.classList.add('danger');
   if(mode==='ok') b.classList.add('ok');
+  if(mode==='danger') b.classList.add('danger');
 }
-
 function triggerAutosave(){
   clearTimeout(autosaveTimer);
-  setAutosaveBadge('儲存中…', 'saving');
-
-  const saveWork = () => {
+  setAutosaveBadge('儲存中…','saving');
+  autosaveTimer=setTimeout(()=>{
     try{
       const ta=document.getElementById('inputText');
       localStorage.setItem('writer_draft_v1', ta.value);
-      setAutosaveBadge('已儲存', 'ok');
-      setTimeout(()=>setAutosaveBadge('準備就緒', 'idle'), 900);
+      setAutosaveBadge('已儲存','ok');
+      setTimeout(()=>setAutosaveBadge('準備就緒','idle'), 800);
     }catch(e){
-      setAutosaveBadge('儲存失敗', 'danger');
-    }
-  };
-
-  autosaveTimer=setTimeout(()=>{
-    if('requestIdleCallback' in window){
-      requestIdleCallback(saveWork, { timeout: 800 });
-    }else{
-      saveWork();
+      setAutosaveBadge('儲存失敗','danger');
     }
   }, 450);
 }
 
-/* =========================================================
-   15) 初始化：OpenCC + CSV + 草稿 + 偵測事件
-   ========================================================= */
+/* ===============================
+   16) 初始化
+   =============================== */
 window.addEventListener('load', async ()=>{
   bindKeyboardOffset();
 
@@ -896,37 +853,31 @@ window.addEventListener('load', async ()=>{
   const saved=localStorage.getItem('writer_draft_v1');
   if(saved){
     ta.value=saved;
-    setAutosaveBadge('草稿已恢復', 'ok');
-    setTimeout(()=>setAutosaveBadge('準備就緒', 'idle'), 900);
+    setAutosaveBadge('草稿已恢復','ok');
+    setTimeout(()=>setAutosaveBadge('準備就緒','idle'), 800);
   }else{
-    setAutosaveBadge('準備就緒', 'idle');
+    setAutosaveBadge('準備就緒','idle');
   }
 
-  // 输入：存檔 + 經文偵測（預覽不跑校稿，保持快）
   ta.addEventListener('input', ()=>{
     triggerAutosave();
+
+    // 以「最後輸入字元」判斷是否 commit（空白/Enter/標點）
+    const cursor=ta.selectionStart;
+    const lastChar = cursor>0 ? ta.value[cursor-1] : '';
+    const commit = isCommitChar(lastChar);
+
     clearTimeout(window.__verseDetectTimer);
-    window.__verseDetectTimer=setTimeout(maybeDetectVerse, 220);
+    window.__verseDetectTimer=setTimeout(()=>maybeDetectVerse(commit), 160);
   });
 
-  // 游標移動也能偵測（回頭補標點很有用）
-  ta.addEventListener('keyup', (e)=>{
-    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
-      clearTimeout(window.__verseDetectTimer);
-      window.__verseDetectTimer=setTimeout(maybeDetectVerse, 180);
-    }
-  });
-
-  // 快捷鍵：Esc 關浮窗；Alt+Enter 插入
+  // Esc 關浮窗（只在自動插入關閉時有用）
   document.addEventListener('keydown', (e)=>{
-    const popShown = document.getElementById('versePop').classList.contains('show');
+    const popShown=document.getElementById('versePop').classList.contains('show');
     if(e.key==='Escape' && popShown) closeVersePop();
-    if(e.altKey && e.key==='Enter' && popShown){
-      e.preventDefault();
-      insertVerse();
-    }
   });
 });
 </script>
+
 </body>
 </html>
